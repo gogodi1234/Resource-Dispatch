@@ -1,73 +1,5 @@
-import React, { useRef } from 'react';
-import { Filter, ChevronDown, Check, Upload } from 'lucide-react';
-
-interface MultiSelectProps {
-  label: string;
-  options: string[];
-  selected: string[];
-  onChange: (selected: string[]) => void;
-}
-
-const MultiSelect: React.FC<MultiSelectProps> = ({ label, options, selected, onChange }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleOption = (option: string) => {
-    const newSelected = selected.includes(option)
-      ? selected.filter(item => item !== option)
-      : [...selected, option];
-    onChange(newSelected);
-  };
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative', minWidth: '160px' }}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: '100%', padding: '0.625rem 1rem', backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: '0.875rem', color: '#374151'
-        }}
-      >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>
-          {selected.length === 0 ? label : `${label} (${selected.length})`}
-        </span>
-        <ChevronDown size={16} color="#6b7280" />
-      </button>
-
-      {isOpen && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%', backgroundColor: '#fff', border: '1px solid #e5e7eb',
-          borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 50, maxHeight: '250px', overflowY: 'auto', padding: '4px'
-        }}>
-          {options.map(option => (
-            <div
-              key={option} onClick={() => toggleOption(option)}
-              style={{
-                padding: '0.5rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between', backgroundColor: selected.includes(option) ? '#f3f4f6' : 'transparent',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f9fafb')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = selected.includes(option) ? '#f3f4f6' : 'transparent')}
-            >
-              <span>{option}</span>
-              {selected.includes(option) && <Check size={14} color="#4F46E5" />}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import React, { useState, useRef, useEffect } from 'react';
+import { Filter, X, ChevronDown, Check } from 'lucide-react';
 
 interface FilterBarProps {
   personnelOptions: string[];
@@ -80,60 +12,128 @@ interface FilterBarProps {
     categories: string[];
     statuses: string[];
   };
-  setFilters: React.Dispatch<React.SetStateAction<{
-    personnel: string[];
-    countries: string[];
-    categories: string[];
-    statuses: string[];
-  }>>;
-  onAddProject: () => void;
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setFilters: (filters: any) => void;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({ 
-  personnelOptions,
-  countryOptions, 
-  categoryOptions, 
-  statusOptions,
-  filters, 
-  setFilters,
-  onFileUpload
+const FilterBar: React.FC<FilterBarProps> = ({
+  personnelOptions, countryOptions, categoryOptions, statusOptions, filters, setFilters
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div style={{ 
-      display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', backgroundColor: 'transparent',
-      width: '100%'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4F46E5', marginRight: '0.25rem' }}>
-        <Filter size={20} />
-        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Filters:</span>
-      </div>
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpenFilter(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-      <MultiSelect label="Personnel" options={personnelOptions} selected={filters.personnel} onChange={(val) => setFilters(prev => ({ ...prev, personnel: val }))} />
-      <MultiSelect label="Country" options={countryOptions} selected={filters.countries} onChange={(val) => setFilters(prev => ({ ...prev, countries: val }))} />
-      <MultiSelect label="Category" options={categoryOptions} selected={filters.categories} onChange={(val) => setFilters(prev => ({ ...prev, categories: val }))} />
-      <MultiSelect label="Status" options={statusOptions} selected={filters.statuses} onChange={(val) => setFilters(prev => ({ ...prev, statuses: val }))} />
+  const toggleFilter = (type: string, value: string) => {
+    const current = [...(filters as any)[type]];
+    const next = current.includes(value) 
+      ? current.filter(v => v !== value)
+      : [...current, value];
+    setFilters({ ...filters, [type]: next });
+  };
 
-      <button
-        onClick={() => { setFilters({ personnel: [], countries: [], categories: [], statuses: [] }); }}
-        style={{ border: 'none', background: 'none', color: '#6b7280', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'underline' }}
-      >
-        Clear
-      </button>
+  const clearFilters = () => {
+    setFilters({ personnel: [], countries: [], categories: [], statuses: [] });
+    setOpenFilter(null);
+  };
 
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
-        <input type="file" accept=".csv" ref={fileInputRef} style={{ display: 'none' }} onChange={onFileUpload} />
-        <button
-          onClick={() => fileInputRef.current?.click()}
+  const Dropdown = ({ label, type, options, selected }: { label: string, type: string, options: string[], selected: string[] }) => {
+    const isOpen = openFilter === type;
+    
+    return (
+      <div style={{ position: 'relative' }}>
+        <button 
+          onClick={() => setOpenFilter(isOpen ? null : type)}
           style={{
-            backgroundColor: '#fff', color: '#4b5563', border: '1px solid #d1d5db', padding: '0.625rem 1rem',
-            borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem'
+            padding: '0.5rem 0.75rem',
+            borderRadius: '8px',
+            border: `1px solid ${selected.length > 0 ? '#1E40AF' : '#e2e8f0'}`,
+            fontSize: '0.85rem',
+            backgroundColor: selected.length > 0 ? '#EFF6FF' : '#fff',
+            color: selected.length > 0 ? '#1E40AF' : '#475569',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            minWidth: '130px',
+            fontWeight: selected.length > 0 ? 700 : 500,
+            transition: 'all 0.2s'
           }}
         >
-          <Upload size={16} /> Import CSV
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            {selected.length > 0 ? `${label} (${selected.length})` : label}
+          </span>
+          <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
         </button>
+
+        {isOpen && (
+          <div style={{
+            position: 'absolute', top: '110%', left: 0, width: '220px', maxHeight: '300px',
+            backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 1000,
+            overflowY: 'auto', padding: '0.5rem'
+          }}>
+            {options.map(opt => {
+              const isChecked = selected.includes(opt);
+              return (
+                <div 
+                  key={opt}
+                  onClick={() => toggleFilter(type, opt)}
+                  style={{
+                    padding: '0.6rem 0.75rem', borderRadius: '6px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem',
+                    backgroundColor: isChecked ? '#EFF6FF' : 'transparent',
+                    color: isChecked ? '#1E40AF' : '#475569',
+                    transition: 'background 0.1s'
+                  }}
+                >
+                  <div style={{
+                    width: '16px', height: '16px', borderRadius: '4px', border: '1px solid',
+                    borderColor: isChecked ? '#1E40AF' : '#d1d5db',
+                    backgroundColor: isChecked ? '#1E40AF' : '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {isChecked && <Check size={12} color="#fff" strokeWidth={3} />}
+                  </div>
+                  <span style={{ fontWeight: isChecked ? 700 : 400 }}>{opt.toUpperCase()}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const activeCount = filters.personnel.length + filters.countries.length + filters.categories.length + filters.statuses.length;
+
+  return (
+    <div ref={containerRef} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      {/* FIXED: White color for Filters label to contrast with lighter blue header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FFFFFF', fontWeight: 800, fontSize: '0.9rem' }}>
+        <Filter size={18} color="#FFFFFF" />
+        <span>Filters</span>
+        {activeCount > 0 && <span style={{ backgroundColor: '#fff', color: '#4C8CE4', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', fontWeight: 900 }}>{activeCount}</span>}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <Dropdown label="Personnel" type="personnel" options={personnelOptions} selected={filters.personnel} />
+        <Dropdown label="Country" type="countries" options={countryOptions} selected={filters.countries} />
+        <Dropdown label="Category" type="categories" options={categoryOptions} selected={filters.categories} />
+        <Dropdown label="Status" type="statuses" options={statusOptions} selected={filters.statuses} />
+
+        {activeCount > 0 && (
+          <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '0.5rem' }}>
+            <X size={14} /> Clear
+          </button>
+        )}
       </div>
     </div>
   );

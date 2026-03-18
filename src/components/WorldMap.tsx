@@ -1,12 +1,7 @@
-import React, { useState } from "react";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-  ZoomableGroup
-} from "react-simple-maps";
+import React, { useMemo, useState } from "react";
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import type { Project } from "../data/mockData";
+import { X } from "lucide-react";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -19,140 +14,168 @@ interface WorldMapProps {
 }
 
 const WorldMap: React.FC<WorldMapProps> = ({ projects, onMarkerClick, position, setPosition, selectedProjectId }) => {
-  const [activeMarker, setActiveMarker] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<any>(null);
+
+  // THEME COLORS (Style 1 + 2)
+  const COLORS = {
+    ocean: "#EDF2F7", 
+    land: "#D1D5DB",  
+    landHover: "#9CA3AF",
+    primary: "#2E4057",
+    delay: "#CA3E47",
+    planning: "#807182",
+    ongoing: "#66A182"
+  };
+
+  const clusteredMarkers = useMemo(() => {
+    const clusters: any[] = [];
+    const minPixelDistance = 25; 
+    const threshold = minPixelDistance / (position.zoom * 2); 
+
+    projects.forEach(project => {
+      let foundCluster = false;
+      for (const cluster of clusters) {
+        const dx = project.coordinates[0] - cluster.coords[0];
+        const dy = project.coordinates[1] - cluster.coords[1];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < threshold) {
+          cluster.items.push(project);
+          cluster.count++;
+          if (project.status === 'delay') cluster.hasDelay = true;
+          foundCluster = true;
+          break;
+        }
+      }
+
+      if (!foundCluster) {
+        clusters.push({
+          id: `cluster-${project.id}`,
+          coords: project.coordinates,
+          items: [project],
+          count: 1,
+          hasDelay: project.status === 'delay'
+        });
+      }
+    });
+
+    return clusters;
+  }, [projects, position.zoom]);
 
   const handleMoveEnd = (newPos: { coordinates: [number, number]; zoom: number }) => {
     setPosition(newPos);
   };
 
-  const groupedProjects = projects.reduce((acc, project) => {
-    const key = `${project.coordinates[0]},${project.coordinates[1]}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(project);
-    return acc;
-  }, {} as Record<string, Project[]>);
-
-  const getMarkerRadius = (count: number, isSelected: boolean) => {
-    const base = 4;
-    const growth = Math.min(count * 0.6, 10);
-    const selectBonus = isSelected ? 3 : 0;
-    return (base + growth + selectBonus) / position.zoom;
+  // LARGER RADIUS LOGIC
+  const getBaseRadius = (count: number) => {
+    if (count <= 1) return 6.5; // Increased from 4
+    return 6.5 + Math.pow(count - 1, 0.35) * 3.5; // Increased scaling
   };
 
-  const getStatusColor = (status: Project['status']) => {
+  const getStatusColors = (status: string) => {
     switch (status) {
-      case 'ongoing': return '#10b981';
-      case 'delay': return '#ef4444';
-      case 'on-hold': return '#f59e0b';
-      case 'planning': return '#4F46E5';
-      default: return '#6b7280';
+      case 'delay': return { text: COLORS.delay, bg: '#FEE2E2' };
+      case 'planning': return { text: COLORS.planning, bg: '#F5F3FF' };
+      case 'ongoing': return { text: COLORS.ongoing, bg: '#ECFDF5' };
+      default: return { text: COLORS.ongoing, bg: '#ECFDF5' };
     }
   };
 
-  const strokeWidth = 1.5 / position.zoom;
-  const labelFontSize = 9 / position.zoom;
-  const multiTextSize = (count: number) => Math.max(6, Math.min(10, 6 + count * 0.3)) / position.zoom;
-  const multiTextYOffset = 3 / position.zoom;
-  const textYOffset = -12 / position.zoom;
-
   return (
-    <div className="map-container" style={{ width: '100%', height: '100%', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative' }}>
-      <ComposableMap 
-        projectionConfig={{ scale: 140, rotate: [-10, 0, 0] }}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <ZoomableGroup center={position.coordinates} zoom={position.zoom} onMoveEnd={handleMoveEnd}>
+    <div style={{ width: "100%", height: "100%", backgroundColor: COLORS.ocean, position: "relative", overflow: "hidden" }}>
+      <ComposableMap projection="geoMercator" style={{ width: "100%", height: "100%" }}>
+        <ZoomableGroup
+          zoom={position.zoom}
+          center={position.coordinates}
+          onMoveEnd={handleMoveEnd}
+          maxZoom={40}
+        >
           <Geographies geography={geoUrl}>
-            {({ geographies }: { geographies: any[] }) =>
+            {({ geographies }) =>
               geographies.map((geo) => (
                 <Geography
-                  key={geo.rsmKey} geography={geo}
-                  fill="#E2E8F0" stroke="#CBD5E1" strokeWidth={0.5 / position.zoom}
-                  style={{ default: { outline: "none" }, hover: { fill: "#CBD5E1", outline: "none" }, pressed: { outline: "none" } }}
+                  key={geo.rsmKey}
+                  geography={geo}
+                  fill={COLORS.land}
+                  stroke="#FFFFFF"
+                  strokeWidth={0.4 / position.zoom} 
+                  style={{ default: { outline: "none" }, hover: { fill: COLORS.landHover, outline: "none" } }}
                 />
               ))
             }
           </Geographies>
-          {Object.entries(groupedProjects).map(([key, group]) => {
-            const coordinates = key.split(',').map(Number) as [number, number];
-            const count = group.length;
-            const isMulti = count > 1;
-            const containsSelected = group.some(p => p.id === selectedProjectId);
+
+          {clusteredMarkers.map((cluster) => {
+            const isSelected = cluster.items.some((p: Project) => p.id === selectedProjectId);
+            const radius = getBaseRadius(cluster.count) / position.zoom;
             
             return (
-              <Marker key={key} coordinates={coordinates}>
-                <circle 
-                  r={getMarkerRadius(count, containsSelected)} 
-                  fill={containsSelected ? "#FACC15" : (isMulti ? "#4338CA" : "#4F46E5")} 
-                  stroke={containsSelected ? "#1E293B" : "#fff"} 
-                  strokeWidth={containsSelected ? strokeWidth * 2 : strokeWidth} 
-                  style={{ cursor: 'pointer', transition: 'all 0.3s ease', filter: containsSelected ? 'drop-shadow(0 0 4px rgba(250, 204, 21, 0.6))' : 'none' }}
+              <Marker key={cluster.id} coordinates={cluster.coords}>
+                <g 
+                  style={{ cursor: "pointer" }} 
                   onClick={() => {
-                    if (isMulti) setActiveMarker(activeMarker === key ? null : key);
-                    else onMarkerClick(group[0]);
+                    if (cluster.count > 1) setActiveGroup(cluster);
+                    else onMarkerClick(cluster.items[0]);
                   }}
-                />
-                {isMulti && (
-                  <text
-                    textAnchor="middle" y={multiTextYOffset}
-                    style={{ fontFamily: "Inter, sans-serif", fill: containsSelected ? "#1E293B" : "#fff", fontSize: `${multiTextSize(count)}px`, fontWeight: 700, pointerEvents: 'none' }}
-                  >
-                    {count}
-                  </text>
-                )}
-                {!isMulti && position.zoom > 1.5 && (
-                  <text
-                    textAnchor="middle" y={textYOffset}
-                    style={{ fontFamily: "Inter, sans-serif", fill: containsSelected ? "#1E293B" : "#334155", fontSize: `${labelFontSize}px`, fontWeight: containsSelected ? 800 : 600, pointerEvents: 'none' }}
-                  >
-                    {group[0].customer}
-                  </text>
-                )}
+                >
+                  <circle r={radius + (0.4 / position.zoom)} fill="rgba(0,0,0,0.12)" cy={0.4 / position.zoom} />
+                  <circle
+                    r={radius}
+                    fill={cluster.hasDelay ? COLORS.delay : COLORS.primary}
+                    stroke="#FFFFFF"
+                    strokeWidth={0.5 / position.zoom}
+                    style={{ transition: "all 0.3s ease" }}
+                  />
+                  
+                  {cluster.count === 1 ? (
+                    <text x={radius + (4 / position.zoom)} y={1.5 / position.zoom} style={{ fontSize: `${6 / position.zoom}px`, fontWeight: 800, fill: COLORS.primary, pointerEvents: "none", fontFamily: "Inter, sans-serif" }}>
+                      {cluster.items[0].customer}
+                    </text>
+                  ) : (
+                    <text textAnchor="middle" y={(radius / 3.5)} style={{ fontSize: `${Math.max(5, getBaseRadius(cluster.count) * 0.55) / position.zoom}px`, fontWeight: 800, fill: "#FFFFFF", pointerEvents: "none", fontFamily: "Inter, sans-serif" }}>
+                      {cluster.count}
+                    </text>
+                  )}
+
+                  {isSelected && (
+                    <circle r={radius + (3 / position.zoom)} fill="none" stroke="#F59E0B" strokeWidth={1.5 / position.zoom} strokeDasharray={`${2/position.zoom} ${1.5/position.zoom}`} />
+                  )}
+                </g>
               </Marker>
             );
           })}
         </ZoomableGroup>
       </ComposableMap>
 
-      {activeMarker && (
-        <div onClick={() => setActiveMarker(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.1)', backdropFilter: 'blur(1px)', zIndex: 9 }} />
-      )}
-
-      {activeMarker && groupedProjects[activeMarker] && (
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          backgroundColor: '#fff', padding: '1.25rem', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-          border: '1px solid #e2e8f0', maxHeight: '320px', overflowY: 'auto', width: '280px', zIndex: 10
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
-            <div><h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>Select Project</h4></div>
-            <button onClick={() => setActiveMarker(null)} style={{ border: 'none', background: '#f1f5f9', width: '24px', height: '24px', borderRadius: '12px', cursor: 'pointer' }}>✕</button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {groupedProjects[activeMarker].map(p => {
-              const isSelected = p.id === selectedProjectId;
-              return (
-                <div 
-                  key={p.id} onClick={() => { onMarkerClick(p); setActiveMarker(null); }}
-                  style={{ 
-                    padding: '0.75rem', borderRadius: '10px', border: '1px solid',
-                    borderColor: isSelected ? '#4F46E5' : '#f1f5f9',
-                    backgroundColor: isSelected ? '#f5f3ff' : 'transparent',
-                    cursor: 'pointer', transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => !isSelected && (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                  onMouseLeave={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isSelected ? '#4F46E5' : '#334155' }}>{p.customer}</div>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{p.category}</span>
-                    <span style={{ fontWeight: 700, color: getStatusColor(p.status) }}>{p.status.toUpperCase()}</span>
+      {activeGroup && (
+        <>
+          <div onClick={() => setActiveGroup(null)} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(2px)", zIndex: 999 }} />
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "360px", maxHeight: "75%", backgroundColor: "#fff", borderRadius: "18px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", zIndex: 1000, overflow: "hidden" }}>
+            <div style={{ padding: "1.25rem", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.primary }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: "#fff" }}>Region Hub</h3>
+                <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>{activeGroup.count} active projects</p>
+              </div>
+              <button onClick={() => setActiveGroup(null)} style={{ border: "none", background: "rgba(255,255,255,0.1)", borderRadius: "50%", padding: "5px", cursor: "pointer", display: "flex" }}><X size={16} color="#fff" /></button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem", backgroundColor: "#f8fafc" }}>
+              {activeGroup.items.map((p: Project) => {
+                const colors = getStatusColors(p.status);
+                return (
+                  <div key={p.id} onClick={() => { onMarkerClick(p); setActiveGroup(null); }} style={{ padding: "1rem", borderRadius: "12px", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.2s", backgroundColor: p.id === selectedProjectId ? "#F5F3FF" : "#fff", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "0.9rem", fontWeight: 800, color: COLORS.primary, marginBottom: "2px" }}>{p.customer}</div>
+                        <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>{p.category} • {p.city}</div>
+                      </div>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 900, color: colors.text, textTransform: 'uppercase', backgroundColor: colors.bg, padding: "3px 7px", borderRadius: "5px" }}>{p.status}</div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Project, Personnel } from "../data/mockData";
-import { X, Calendar, MapPin, Activity, Edit2, Trash2, CheckCircle, PauseCircle, AlertCircle, PlayCircle } from "lucide-react";
+import { X, MapPin, Calendar, Users, Trash2, CheckCircle, AlertTriangle, PlayCircle, PauseCircle } from "lucide-react";
 
 interface ProjectDetailsProps {
   project: Project;
@@ -13,118 +13,136 @@ interface ProjectDetailsProps {
   onToggleOnHold: (projectId: string) => void;
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, personnel, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onToggleOnHold }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ 
+  project, personnel, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onToggleOnHold 
+}) => {
   const assignedTeam = personnel.filter(p => project.assignedPersonnel.includes(p.name));
 
-  const getStatusColor = (status: Project['status']) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'ongoing': return '#10b981';
-      case 'delay': return '#ef4444';
-      case 'on-hold': return '#f59e0b';
-      case 'planning': return '#4F46E5';
-      default: return '#6b7280';
+      case 'delay': return { bg: '#FEE2E2', text: '#EF4444' };
+      case 'ongoing': return { bg: '#ECFDF5', text: '#10B981' };
+      case 'planning': return { bg: '#F5F3FF', text: '#8B5CF6' };
+      case 'on-hold': return { bg: '#F1F5F9', text: '#64748b' };
+      default: return { bg: '#F3F4F6', text: '#374151' };
     }
   };
 
-  const isOnHold = project.status === 'on-hold';
-  const isDelayed = project.status === 'delay';
+  const colors = getStatusStyle(project.status);
 
   return (
-    <div className="project-details" style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '12px', backgroundColor: '#fff', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-      <button 
-        onClick={onClose}
-        style={{ position: 'absolute', top: '1rem', right: '1rem', border: 'none', background: 'none', cursor: 'pointer' }}
-      >
-        <X size={20} color="#6b7280" />
+    <div className="project-details" style={{ 
+      borderRadius: '16px', 
+      backgroundColor: '#F5F9FF', // Subtle Ice Blue Background
+      overflow: 'hidden',
+      border: '1px solid rgba(76, 140, 228, 0.2)',
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Premium Top Bar */}
+      <div style={{ height: '4px', backgroundColor: '#4C8CE4', width: '100%' }} />
+
+      <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', border: 'none', background: 'rgba(255,255,255,0.8)', borderRadius: '50%', padding: '4px', cursor: 'pointer', zIndex: 10 }}>
+        <X size={18} color="#64748b" />
       </button>
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '1.5rem' }}>
-          <h2 style={{ margin: '0 0 0.25rem 0', color: '#111827', fontSize: '1.25rem', fontWeight: 700 }}>{project.name}</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => onEdit(project)} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e5e7eb', backgroundColor: '#fff', cursor: 'pointer' }} title="Edit Project">
-              <Edit2 size={14} color="#4b5563" />
-            </button>
-            <button 
-              onClick={() => { if(confirm('Are you sure you want to delete this project?')) onDelete(project.id); }}
-              style={{ padding: '6px', borderRadius: '6px', border: '1px solid #fee2e2', backgroundColor: '#fff', cursor: 'pointer' }}
-              title="Delete Project"
-            >
-              <Trash2 size={14} color="#ef4444" />
-            </button>
+      <div style={{ padding: '1.5rem' }}>
+        {/* Header Section */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase', backgroundColor: colors.bg, color: colors.text }}>
+              {project.status}
+            </span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', backgroundColor: '#fff', color: '#475569', border: '1px solid #E2E8F0' }}>
+              {project.category}
+            </span>
+          </div>
+          <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: '#1e293b', lineHeight: 1.2 }}>{project.customer}</h2>
+          <p style={{ margin: '0.4rem 0 0 0', color: '#64748b', fontSize: '0.85rem', fontWeight: 500 }}>{project.name}</p>
+        </div>
+
+        {/* Info Card (White Container) */}
+        <div style={{ 
+          backgroundColor: '#FFFFFF', 
+          borderRadius: '12px', 
+          padding: '1.25rem', 
+          border: '1px solid rgba(76, 140, 228, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#475569' }}>
+            <div style={{ backgroundColor: '#F0F7FF', padding: '6px', borderRadius: '8px' }}><MapPin size={16} color="#4C8CE4" /></div>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{project.city}, {project.country}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#475569' }}>
+            <div style={{ backgroundColor: '#F0F7FF', padding: '6px', borderRadius: '8px' }}><Calendar size={16} color="#4C8CE4" /></div>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{project.startDate} to {project.deadline}</span>
           </div>
         </div>
-        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Customer: {project.customer}</span>
+
+        {/* Team Section (Nested Layout) */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+            <Users size={14} /> Team Members ({assignedTeam.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {assignedTeam.length > 0 ? assignedTeam.map(p => (
+              <div key={p.id} style={{ padding: '0.4rem 0.8rem', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+                {p.name}
+              </div>
+            )) : (
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', backgroundColor: 'rgba(255,255,255,0.5)', width: '100%', padding: '1rem', borderRadius: '10px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>No personnel assigned yet.</div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Status Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <button
-          onClick={() => { if(confirm('Complete this project? It will be hidden from dashboard.')) onMarkComplete(project.id); }}
-          style={{
-            width: '100%', padding: '0.625rem', borderRadius: '8px', border: 'none',
-            backgroundColor: '#ecfdf5', color: '#059669', fontWeight: 700, fontSize: '0.875rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-          }}
-        >
-          <CheckCircle size={18} /> Mark as Completed
-        </button>
-
+      {/* Action Tray (Darker base) */}
+      <div style={{ 
+        backgroundColor: '#F1F5F9', 
+        padding: '1.5rem', 
+        borderTop: '1px solid #E2E8F0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem'
+      }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          <button
+          <button 
             onClick={() => onToggleOnHold(project.id)}
-            style={{
-              padding: '0.625rem', borderRadius: '8px', border: '1px solid #f59e0b30',
-              backgroundColor: isOnHold ? '#fff7ed' : '#fff', color: '#d97706', fontWeight: 600, fontSize: '0.8125rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', backgroundColor: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}
           >
-            {isOnHold ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
-            {isOnHold ? 'Resume' : 'On-hold'}
+            {project.status === 'on-hold' ? <PlayCircle size={16} color="#10B981" /> : <PauseCircle size={16} color="#F59E0B" />}
+            {project.status === 'on-hold' ? 'Resume' : 'On-hold'}
           </button>
-
-          <button
+          <button 
+            onClick={() => onMarkComplete(project.id)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: 'none', backgroundColor: '#10B981', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+          >
+            <CheckCircle size={16} /> Complete
+          </button>
+          <button 
             onClick={() => onMarkDelay(project.id)}
-            style={{
-              padding: '0.625rem', borderRadius: '8px', border: '1px solid #ef444430',
-              backgroundColor: isDelayed ? '#fef2f2' : '#fff', color: '#dc2626', fontWeight: 600, fontSize: '0.8125rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: '1px solid #FEE2E2', backgroundColor: '#FEF2F2', color: '#EF4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
           >
-            <AlertCircle size={16} /> {isDelayed ? 'Flagged Delay' : 'Flag Delay'}
+            <AlertTriangle size={16} /> Flag Delay
+          </button>
+          <button 
+            onClick={() => onDelete(project.id)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: '1px solid #FEE2E2', backgroundColor: '#fff', color: '#EF4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+          >
+            <Trash2 size={16} /> Delete
           </button>
         </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <MapPin size={16} color="#6b7280" />
-          <span style={{ fontSize: '0.875rem' }}>{project.city}, {project.country}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Activity size={16} color={getStatusColor(project.status)} />
-          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: getStatusColor(project.status) }}>{project.status.toUpperCase()}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: 'span 2' }}>
-          <Calendar size={16} color="#6b7280" />
-          <span style={{ fontSize: '0.875rem' }}>{project.startDate} to {project.deadline}</span>
-        </div>
-      </div>
-
-      <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          <Activity size={18} color="#4F46E5" />
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Assigned Team</h3>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {assignedTeam.length > 0 ? assignedTeam.map(p => (
-            <div key={p.id} style={{ padding: '0.375rem 0.75rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', fontSize: '0.75rem', fontWeight: 600, color: '#334155' }}>
-              {p.name}
-            </div>
-          )) : (
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic' }}>No personnel assigned.</div>
-          )}
-        </div>
+        
+        <button 
+          onClick={() => onEdit(project)}
+          style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #4C8CE4', color: '#4C8CE4', backgroundColor: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800 }}
+        >
+          Edit Project Details
+        </button>
       </div>
     </div>
   );

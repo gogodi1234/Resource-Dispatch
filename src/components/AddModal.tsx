@@ -1,25 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
-import type { Project, Personnel, SkillCapacity } from '../data/mockData';
+import { X, Calendar } from 'lucide-react';
+import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import type { Project, Personnel } from '../data/mockData';
 
 const countryCoords: Record<string, [number, number]> = {
   'JP': [138.2529, 36.2048], 'US': [-95.7129, 37.0902], 'AU': [133.7751, -25.2744], 'FI': [25.7482, 61.9241]
-};
-
-const stateCoords: Record<string, [number, number]> = {
-  'AL': [-86.9023, 32.3182], 'AK': [-154.4931, 63.5888], 'AZ': [-111.0937, 34.0489], 'AR': [-92.1999, 34.9697],
-  'CA': [-119.4179, 36.7783], 'CO': [-105.7821, 39.5501], 'CT': [-72.7273, 41.6032], 'DE': [-75.5277, 38.9108],
-  'FL': [-81.5158, 27.6648], 'GA': [-83.2220, 32.1656], 'HI': [-155.5828, 19.8968], 'ID': [-114.7420, 44.0682],
-  'IL': [-89.3985, 40.6331], 'IN': [-86.1349, 40.2672], 'IA': [-93.0977, 41.8780], 'KS': [-98.4842, 38.4988],
-  'KY': [-84.2700, 37.8393], 'LA': [-91.9623, 30.9843], 'ME': [-69.4455, 45.2538], 'MD': [-76.6413, 39.0458],
-  'MA': [-71.3824, 42.4072], 'MI': [-84.5361, 43.3266], 'MN': [-94.6859, 46.7296], 'MS': [-89.3985, 32.3547],
-  'MO': [-91.8318, 37.9643], 'MT': [-110.3626, 46.8797], 'NE': [-99.9018, 41.4925], 'NV': [-116.4194, 38.8026],
-  'NH': [-71.5724, 43.1939], 'NJ': [-74.4057, 40.0583], 'NM': [-105.8701, 34.5199], 'NY': [-74.2179, 43.2994],
-  'NC': [-79.0193, 35.7596], 'ND': [-101.0020, 47.5502], 'OH': [-82.9071, 40.4173], 'OK': [-97.0929, 35.0078],
-  'OR': [-120.5542, 43.8041], 'PA': [-77.1945, 41.2033], 'RI': [-71.4774, 41.5801], 'SC': [-80.9450, 33.8361],
-  'SD': [-99.9018, 44.3683], 'TN': [-86.5804, 35.5175], 'TX': [-99.9018, 31.9686], 'UT': [-111.0937, 39.3210],
-  'VT': [-72.5778, 44.0459], 'VA': [-78.6569, 37.4316], 'WA': [-120.7401, 47.7511], 'WV': [-80.4549, 38.5976],
-  'WI': [-89.6165, 43.7844], 'WY': [-107.2903, 43.0760]
 };
 
 interface AddModalProps {
@@ -29,16 +14,19 @@ interface AddModalProps {
   onClose: () => void;
   onAddProject: (project: Project) => void;
   onAddPersonnel: (person: Personnel) => void;
+  availableCountries: string[];
 }
 
-const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose, onAddProject, onAddPersonnel }) => {
+const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose, onAddProject, onAddPersonnel, availableCountries }) => {
   const [projectData, setProjectData] = useState<Partial<Project>>({
     status: 'ongoing', assignedPersonnel: [], country: '', state: '', city: '', startDate: '', deadline: '', category: '', name: '', customer: ''
   });
 
   const [personnelData, setPersonnelData] = useState<Partial<Personnel>>({
-    name: '', role: '', skillCapacities: [], allowedRegions: [], unavailableDates: []
+    name: '', role: '', skills: [], allowedCountries: [], unavailableDates: []
   });
+
+  const [leaveRange, setLeaveRange] = useState({ start: '', end: '' });
 
   useEffect(() => {
     if (isOpen) {
@@ -48,8 +36,9 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
         setPersonnelData(initialData as Personnel);
       } else {
         setProjectData({ status: 'ongoing', assignedPersonnel: [], country: '', state: '', city: '', startDate: '', deadline: '', category: '', name: '', customer: '' });
-        setPersonnelData({ name: '', role: '', skillCapacities: [{category: 'UPS', dailyCapacity: 5}], allowedRegions: ['APAC'], unavailableDates: [] });
+        setPersonnelData({ name: '', role: '', skills: ['UPS'], allowedCountries: ['JP'], unavailableDates: [] });
       }
+      setLeaveRange({ start: '', end: '' });
     }
   }, [isOpen, initialData, type]);
 
@@ -65,31 +54,56 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
     onClose();
   };
 
-  const addSkillRow = () => {
-    setPersonnelData(prev => ({
-      ...prev,
-      skillCapacities: [...(prev.skillCapacities || []), { category: 'UPS', dailyCapacity: 5 }]
-    }));
+  const addLeaveRange = () => {
+    if (!leaveRange.start || !leaveRange.end) return;
+    try {
+      const days = eachDayOfInterval({ start: parseISO(leaveRange.start), end: parseISO(leaveRange.end) });
+      const formattedDays = days.map(d => format(d, 'yyyy-MM-dd'));
+      const current = new Set(personnelData.unavailableDates || []);
+      formattedDays.forEach(d => current.add(d));
+      setPersonnelData({ ...personnelData, unavailableDates: Array.from(current).sort() });
+      setLeaveRange({ start: '', end: '' });
+    } catch (err) { alert("Invalid date range"); }
   };
 
-  const removeSkillRow = (index: number) => {
-    setPersonnelData(prev => ({
-      ...prev,
-      skillCapacities: prev.skillCapacities?.filter((_, i) => i !== index)
-    }));
+  const toggleSkill = (skill: string) => {
+    const current = personnelData.skills || [];
+    if (skill === 'All') {
+      setPersonnelData({ ...personnelData, skills: ['All'] });
+    } else {
+      let nextSkills = current.filter(s => s !== 'All');
+      if (nextSkills.includes(skill)) {
+        nextSkills = nextSkills.filter(s => s !== skill);
+      } else {
+        nextSkills.push(skill);
+      }
+      setPersonnelData({ ...personnelData, skills: nextSkills });
+    }
   };
 
-  const updateSkill = (index: number, field: keyof SkillCapacity, value: any) => {
-    const newSkills = [...(personnelData.skillCapacities || [])];
-    newSkills[index] = { ...newSkills[index], [field]: value };
-    setPersonnelData(prev => ({ ...prev, skillCapacities: newSkills }));
+  const toggleCountry = (country: string) => {
+    const current = personnelData.allowedCountries || [];
+    if (country === 'GLOBAL') {
+      setPersonnelData({ ...personnelData, allowedCountries: ['GLOBAL'] });
+    } else {
+      let nextCountries = current.filter(c => c !== 'GLOBAL');
+      if (nextCountries.includes(country)) {
+        nextCountries = nextCountries.filter(c => c !== country);
+      } else {
+        nextCountries.push(country);
+      }
+      setPersonnelData({ ...personnelData, allowedCountries: nextCountries });
+    }
   };
 
   const inputStyle = { width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #e5e7eb', marginTop: '0.25rem', marginBottom: '1rem', fontSize: '0.875rem' };
   const labelStyle = { fontSize: '0.875rem', fontWeight: 600, color: '#374151' };
 
+  const categories = ["All", "UPS", "CDU", "Cooling", "Valve", "Battery", "Other"];
+  const countries = ["GLOBAL", ...availableCountries];
+
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ backgroundColor: '#fff', padding: '2rem', borderRadius: '16px', width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', border: 'none', background: 'none', cursor: 'pointer' }}>
           <X size={20} color="#6b7280" />
@@ -108,65 +122,69 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
             <input required value={personnelData.role || ''} style={inputStyle} onChange={e => setPersonnelData({...personnelData, role: e.target.value})} />
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label style={labelStyle}>Skills & Daily Capacity</label>
-                <button type="button" onClick={addSkillRow} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#4F46E5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                  <Plus size={14} /> Add Skill
-                </button>
+              <label style={labelStyle}>Skills (Select 'All' or specific skills)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {categories.map(cat => (
+                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: cat === 'All' ? 700 : 400 }}>
+                    <input type="checkbox" checked={personnelData.skills?.includes(cat)} onChange={() => toggleSkill(cat)} />
+                    {cat}
+                  </label>
+                ))}
               </div>
-              {personnelData.skillCapacities?.map((skill, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <select 
-                    style={{ ...inputStyle, flex: 2, marginBottom: 0 }}
-                    value={skill.category}
-                    onChange={e => updateSkill(idx, 'category', e.target.value)}
-                  >
-                    <option value="UPS">UPS</option>
-                    <option value="CDU">CDU</option>
-                    <option value="Cooling">Cooling</option>
-                    <option value="Valve">Valve</option>
-                    <option value="Battery">Battery</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <input 
-                    type="number" placeholder="Qty/Day" style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
-                    value={skill.dailyCapacity}
-                    onChange={e => updateSkill(idx, 'dailyCapacity', parseInt(e.target.value) || 0)}
-                  />
-                  <button type="button" onClick={() => removeSkillRow(idx)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              ))}
             </div>
 
-            <label style={labelStyle}>Allowed Regions (Comma separated: APAC, Americas, EMEA)</label>
-            <input 
-              placeholder="e.g. APAC, EMEA" style={inputStyle}
-              value={personnelData.allowedRegions?.join(', ')}
-              onChange={e => setPersonnelData({...personnelData, allowedRegions: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-            />
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={labelStyle}>Allowed Countries (Select 'GLOBAL' or specific countries)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.5rem', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                {countries.map(c => (
+                  <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: c === 'GLOBAL' ? 700 : 400 }}>
+                    <input type="checkbox" checked={personnelData.allowedCountries?.includes(c)} onChange={() => toggleCountry(c)} />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </div>
 
-            <label style={labelStyle}>Unavailable Dates (YYYY-MM-DD, comma separated)</label>
-            <input 
-              placeholder="e.g. 2026-03-10, 2026-03-15" style={inputStyle}
-              value={personnelData.unavailableDates?.join(', ')}
-              onChange={e => setPersonnelData({...personnelData, unavailableDates: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-            />
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.75rem' }}>
+                <Calendar size={16} color="#4F46E5" /> Add Unavailable / Leave Range
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>From</span>
+                  <input type="date" style={{ ...inputStyle, marginBottom: 0 }} value={leaveRange.start} onChange={e => setLeaveRange({ ...leaveRange, start: e.target.value })} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>To</span>
+                  <input type="date" style={{ ...inputStyle, marginBottom: 0 }} value={leaveRange.end} onChange={e => setLeaveRange({ ...leaveRange, end: e.target.value })} />
+                </div>
+                <button type="button" onClick={addLeaveRange} style={{ padding: '0.625rem 1rem', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Add</button>
+              </div>
+              
+              {personnelData.unavailableDates && personnelData.unavailableDates.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Registered Dates ({personnelData.unavailableDates.length})</span>
+                    <button type="button" onClick={() => setPersonnelData({...personnelData, unavailableDates: []})} style={{ fontSize: '0.7rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Clear All</button>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                    {personnelData.unavailableDates.map(d => (
+                      <span key={d} style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem', backgroundColor: '#f1f5f9', borderRadius: '4px' }}>{d}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '1rem' }}>
+            <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>
               {initialData ? 'Update' : 'Register'} Member
             </button>
           </form>
         ) : (
           <form onSubmit={(e) => {
             e.preventDefault();
-            const coords = stateCoords[projectData.state || ''] || countryCoords[projectData.country || ''] || [0, 0];
-            onAddProject({
-              ...projectData,
-              id: (initialData as Project)?.id || `prj-${Date.now()}`,
-              coordinates: coords
-            } as Project);
+            const coords = countryCoords[projectData.country || ''] || [0, 0];
+            onAddProject({ ...projectData, id: (initialData as Project)?.id || `prj-${Date.now()}`, coordinates: coords } as Project);
             onClose();
           }}>
             <label style={labelStyle}>Project Name</label>
@@ -176,41 +194,23 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
             <input required value={projectData.customer || ''} style={inputStyle} onChange={e => setProjectData({...projectData, customer: e.target.value})} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>Country (ISO)</label>
-                <input required placeholder="US, JP..." value={projectData.country || ''} style={inputStyle} onChange={e => setProjectData({...projectData, country: e.target.value})} />
-              </div>
-              <div>
-                <label style={labelStyle}>State</label>
-                <input value={projectData.state || ''} style={inputStyle} onChange={e => setProjectData({...projectData, state: e.target.value})} />
-              </div>
-              <div>
-                <label style={labelStyle}>City</label>
-                <input required value={projectData.city || ''} style={inputStyle} onChange={e => setProjectData({...projectData, city: e.target.value})} />
-              </div>
+              <div><label style={labelStyle}>Country (ISO)</label><input required placeholder="US, JP..." value={projectData.country || ''} style={inputStyle} onChange={e => setProjectData({...projectData, country: e.target.value.toUpperCase()})} /></div>
+              <div><label style={labelStyle}>State</label><input value={projectData.state || ''} style={inputStyle} onChange={e => setProjectData({...projectData, state: e.target.value})} /></div>
+              <div><label style={labelStyle}>City</label><input required value={projectData.city || ''} style={inputStyle} onChange={e => setProjectData({...projectData, city: e.target.value})} /></div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>Category</label>
-                <input required value={projectData.category || ''} style={inputStyle} onChange={e => setProjectData({...projectData, category: e.target.value})} />
-              </div>
-            </div>
+            <label style={labelStyle}>Category</label>
+            <select required style={inputStyle} value={projectData.category || ''} onChange={e => setProjectData({...projectData, category: e.target.value})}>
+              <option value="">Select Category</option>
+              {categories.filter(c => c !== 'All').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>Start Date</label>
-                <input required type="date" value={projectData.startDate || ''} style={inputStyle} onChange={e => setProjectData({...projectData, startDate: e.target.value})} />
-              </div>
-              <div>
-                <label style={labelStyle}>Deadline</label>
-                <input required type="date" value={projectData.deadline || ''} style={inputStyle} onChange={e => setProjectData({...projectData, deadline: e.target.value})} />
-              </div>
+              <div><label style={labelStyle}>Start Date</label><input required type="date" value={projectData.startDate || ''} style={inputStyle} onChange={e => setProjectData({...projectData, startDate: e.target.value})} /></div>
+              <div><label style={labelStyle}>Deadline</label><input required type="date" value={projectData.deadline || ''} style={inputStyle} onChange={e => setProjectData({...projectData, deadline: e.target.value})} /></div>
             </div>
 
-            <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem' }}>
-              {initialData ? 'Update' : 'Create'} Project
-            </button>
+            <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#4F46E5', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>{initialData ? 'Update' : 'Create Project'}</button>
           </form>
         )}
       </div>
