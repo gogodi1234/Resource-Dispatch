@@ -50,12 +50,15 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, personnel, select
 
   const unitWidth = 100 / timelineConfig.units.length;
 
-  // UNIFIED COLORS
+  // UNIFIED COLORS (Matching App THEME)
   const getBarColor = (status: string, isSelected: boolean) => {
-    if (status === 'delay') return isSelected ? '#EF4444' : '#FCA5A5';
-    if (status === 'planning') return isSelected ? '#8B5CF6' : '#C4B5FD'; // Unified Purple
-    if (status === 'on-hold') return '#94A3B8';
-    return isSelected ? '#4F46E5' : '#818CF8';
+    switch (status) {
+      case 'delay': return isSelected ? '#EF4444' : '#FCA5A5';
+      case 'ongoing': return isSelected ? '#10B981' : '#6EE7B7';
+      case 'planning': return isSelected ? '#8B5CF6' : '#C4B5FD';
+      case 'on-hold': return isSelected ? '#64748B' : '#94A3B8';
+      default: return isSelected ? '#4F46E5' : '#818CF8';
+    }
   };
 
   return (
@@ -141,7 +144,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, personnel, select
                           title={`${p.customer} (${p.category})\nStart: ${p.startDate}\nEnd: ${p.deadline}`}
                           style={{
                             position: 'absolute', left: `${getPosition(p.startDate)}%`, width: `${getWidth(p.startDate, p.deadline, p.status)}%`,
-                            height: '100%', backgroundColor: p.status === 'delay' ? '#EF4444' : (p.status === 'planning' ? '#8B5CF6' : '#10B981'), borderRadius: '4px', opacity: 0.7, border: '1px solid #fff',
+                            height: '100%', backgroundColor: getBarColor(p.status, false), borderRadius: '4px', opacity: 0.7, border: '1px solid #fff',
                             display: 'flex', alignItems: 'center', padding: '0 6px', overflow: 'hidden', cursor: 'help'
                           }}
                         >
