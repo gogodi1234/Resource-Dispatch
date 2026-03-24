@@ -1,29 +1,26 @@
 import React, { useMemo, useState } from 'react';
 import type { Project, Personnel } from '../data/mockData';
 import { AlertTriangle, Globe, Wrench, BarChart3, CheckCircle2, Search } from 'lucide-react';
-import { isWithinInterval, parseISO, startOfDay, areIntervalsOverlapping, isAfter } from 'date-fns';
 
 interface SchedulingWorkbenchProps {
-  projects: Project[]; // This is the filtered backlog
-  allProjects: Project[]; // Use this for overlap checks
+  projects: Project[];
   personnel: Personnel[];
   onAssign: (projectId: string, personnelName: string) => void;
   onUnassign: (projectId: string, personnelName: string) => void;
   selectedProjectId?: string;
   onSelectProject: (project: Project) => void;
   onSelectPersonnel?: (person: Personnel) => void;
-  today: Date;
 }
 
 const SchedulingWorkbench: React.FC<SchedulingWorkbenchProps> = ({ 
-  projects, allProjects, personnel, onAssign, onUnassign, selectedProjectId, onSelectProject, onSelectPersonnel, today
+  projects, personnel, onAssign, onUnassign, selectedProjectId, onSelectProject, onSelectPersonnel
 }) => {
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [personnelSearchTerm, setPersonnelSearchTerm] = useState('');
 
   const selectedProject = useMemo(() => 
-    allProjects.find(p => p.id === selectedProjectId), 
-    [allProjects, selectedProjectId]
+    projects.find(p => p.id === selectedProjectId), 
+    [projects, selectedProjectId]
   );
 
   const filteredProjects = useMemo(() => {
@@ -51,59 +48,18 @@ const SchedulingWorkbench: React.FC<SchedulingWorkbenchProps> = ({
   }, [personnel, personnelSearchTerm]);
 
   const handleAssignClick = (projectId: string, person: Personnel) => {
-    const project = allProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     if (!project) return;
-
-    const newStart = startOfDay(parseISO(project.startDate));
-    const newEnd = startOfDay(parseISO(project.deadline));
-
-    // 1. Check for overlapping projects against ALL projects (not just filtered)
-    const overlappingProjects = allProjects.filter(prj => {
-      if (prj.id === projectId) return false;
-      if (prj.status === 'completed') return false;
-      if (!prj.assignedPersonnel.includes(person.name)) return false;
-
-      const prjStart = startOfDay(parseISO(prj.startDate));
-      let prjEnd = startOfDay(parseISO(prj.deadline));
-
-      // If delayed, it's still active today
-      if (prj.status === 'delay' && isAfter(today, prjEnd)) {
-        prjEnd = startOfDay(today);
-      }
-
-      return areIntervalsOverlapping(
-        { start: newStart, end: newEnd },
-        { start: prjStart, end: prjEnd },
-        { inclusive: true }
-      );
-    });
-
-    // 2. Check for overlapping leave dates
-    const overlappingLeaveDates = person.unavailableDates.filter(date => {
-      const leaveDate = startOfDay(parseISO(date));
-      return isWithinInterval(leaveDate, { start: newStart, end: newEnd });
-    });
 
     const countryMatch = person.allowedCountries.includes('GLOBAL') || person.allowedCountries.includes(project.country);
     const skillMatch = person.skills.includes('All') || person.skills.includes(project.category);
 
-    let warnings = [];
-    if (!countryMatch) warnings.push(`not authorized for ${project.country}`);
-    if (!skillMatch) warnings.push(`missing ${project.category} skill`);
-    
-    if (overlappingProjects.length > 0) {
-      const conflictDetails = overlappingProjects.map(p => `${p.customer} (${p.startDate} to ${p.deadline})`).join(', ');
-      warnings.push(`already assigned to overlapping projects: ${conflictDetails}`);
-    }
-    
-    if (overlappingLeaveDates.length > 0) {
-      warnings.push(`has registered leave during this project period (${overlappingLeaveDates.join(', ')})`);
-    }
-
-    if (warnings.length > 0) {
-      const confirmMsg = `Assignment Warning for ${person.name}:\n\n` + 
-        warnings.map(w => `• ${w}`).join('\n') + 
-        `\n\nForce assign anyway?`;
+    if (!countryMatch || !skillMatch) {
+      let reasons = [];
+      if (!countryMatch) reasons.push(`not authorized for ${project.country}`);
+      if (!skillMatch) reasons.push(`missing ${project.category} skill`);
+      
+      const confirmMsg = `Warning: This member is ${reasons.join(' and ')}. \n\nForce assign anyway?`;
       if (window.confirm(confirmMsg)) {
         onAssign(projectId, person.name);
       }

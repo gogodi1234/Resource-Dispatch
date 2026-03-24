@@ -8,11 +8,11 @@ interface PersonnelTableProps {
   projects: Project[];
   onPersonnelClick: (person: Personnel) => void;
   selectedPersonnelId?: string;
-  today: Date;
 }
 
-const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, onPersonnelClick, selectedPersonnelId, today }) => {
-  const todayStr = format(startOfDay(today), 'yyyy-MM-dd');
+const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, onPersonnelClick, selectedPersonnelId }) => {
+  const today = startOfDay(new Date(2026, 2, 10));
+  const todayStr = format(today, 'yyyy-MM-dd');
 
   const getPersonnelStatus = (p: Personnel) => {
     if (p.unavailableDates.includes(todayStr)) {
@@ -22,7 +22,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, on
       const isAssigned = prj.assignedPersonnel.includes(p.name);
       if (!isAssigned) return false;
 
-      const isTodayWithinProject = isWithinInterval(startOfDay(today), { 
+      const isTodayWithinProject = isWithinInterval(today, { 
         start: startOfDay(parseISO(prj.startDate)), 
         end: startOfDay(parseISO(prj.deadline)) 
       });

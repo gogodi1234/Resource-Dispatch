@@ -14,18 +14,9 @@ interface PersonnelDetailsProps {
 const PersonnelDetails: React.FC<PersonnelDetailsProps> = ({ person, projects, onClose, onEdit, onUnassign }) => {
   // const today = startOfDay(new Date(2026, 2, 10)); // March 10, 2026
 
-  const assignedProjects = projects
-    .filter(p => p.assignedPersonnel.includes(person.name) && p.status !== 'completed')
-    .sort((a, b) => {
-      const priority: Record<string, number> = { 'delay': 0, 'on-hold': 1, 'ongoing': 2, 'planning': 3 };
-      const pA = priority[a.status] ?? 99;
-      const pB = priority[b.status] ?? 99;
-      
-      if (pA !== pB) return pA - pB;
-      
-      // Secondary sort: startDate
-      return a.startDate.localeCompare(b.startDate);
-    });
+  const assignedProjects = projects.filter(p => 
+    p.assignedPersonnel.includes(person.name) && p.status !== 'completed'
+  );
 
   return (
     <div className="personnel-details" style={{ 

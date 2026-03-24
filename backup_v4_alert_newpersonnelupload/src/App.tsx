@@ -58,24 +58,6 @@ function App() {
   }, [today]);
 
   const [personnel, setPersonnel] = useState<Personnel[]>(initialPersonnel)
-
-  const personnelWithActiveSkills = useMemo(() => {
-    return personnel.map(p => {
-      if (!p.certifications) return p;
-      const activeSkills = Object.entries(p.certifications)
-        .filter(([_, dateStr]) => {
-          const certDate = parseISO(dateStr);
-          return !isNaN(certDate.getTime()) && !isAfter(startOfDay(certDate), startOfDay(today));
-        })
-        .map(([skill]) => skill);
-      
-      return {
-        ...p,
-        skills: Array.from(new Set([...activeSkills, ...(p.skills.includes('All') ? ['All'] : [])]))
-      };
-    });
-  }, [personnel, today]);
-
   const [projects, setProjects] = useState<Project[]>(initialProjects)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null)
@@ -102,15 +84,8 @@ function App() {
   }, [projects, filters]);
 
   const uniqueCountries = useMemo(() => {
-    const fromProjects = projects.map(p => p.country);
-    return Array.from(new Set(fromProjects)).filter(c => c && c !== 'GLOBAL').sort();
+    return Array.from(new Set(projects.map(p => p.country))).sort();
   }, [projects]);
-
-  const uniqueCategories = useMemo(() => {
-    const fromProjects = projects.map(p => p.category);
-    const fromPersonnel = personnel.flatMap(p => p.skills);
-    return Array.from(new Set([...fromProjects, ...fromPersonnel])).filter(s => s && s !== 'All').sort();
-  }, [projects, personnel]);
 
   const filteredPersonnel = useMemo(() => {
     const activeNames = new Set(filteredProjects.flatMap(p => p.assignedPersonnel));
@@ -135,39 +110,6 @@ function App() {
   };
 
   const handleAssign = (projectId: string, personnelName: string) => {
-    const targetProject = projects.find(p => p.id === projectId);
-    
-    if (targetProject) {
-      const getInterval = (p: Project) => {
-        const start = startOfDay(parseISO(p.startDate));
-        let end = startOfDay(parseISO(p.deadline));
-        // If delayed/overdue, extend end date to today to reflect active status
-        if ((p.status === 'delay' || isAfter(today, end)) && p.status !== 'completed') {
-          end = startOfDay(today);
-        }
-        return { start, end: isBefore(end, start) ? start : end };
-      };
-
-      const targetInterval = getInterval(targetProject);
-      
-      const conflicts = projects.filter(p => 
-        p.id !== projectId &&
-        p.assignedPersonnel.includes(personnelName) &&
-        p.status !== 'completed' &&
-        areIntervalsOverlapping(targetInterval, getInterval(p))
-      );
-
-      if (conflicts.length > 0) {
-        const conflictDetails = conflicts.map(p => `• ${p.name} (${p.startDate} ~ ${p.deadline})`).join('\n');
-        const proceed = confirm(
-          `⚠️ Schedule Conflict Detected for ${personnelName}\n\n` +
-          `They are already assigned to the following overlapping project(s):\n${conflictDetails}\n\n` +
-          `Do you want to proceed with the assignment?`
-        );
-        if (!proceed) return;
-      }
-    }
-
     setProjects(prev => {
       const updated = prev.map(p => p.id === projectId ? { ...p, assignedPersonnel: [...p.assignedPersonnel, personnelName] } : p);
       const target = updated.find(p => p.id === projectId);
@@ -187,8 +129,6 @@ function App() {
 
   const handleAutoAssign = () => {
     let updatedProjects = [...projects];
-    
-    // Sort projects by priority: Delay > Ongoing > Planning
     const sortedProjects = [...projects].sort((a, b) => {
       const priority = { 'delay': 0, 'ongoing': 1, 'planning': 2 };
       return (priority[a.status as keyof typeof priority] || 9) - (priority[b.status as keyof typeof priority] || 9);
@@ -196,13 +136,9 @@ function App() {
 
     sortedProjects.forEach(project => {
       if (project.assignedPersonnel.length > 0) return;
-
-      // 1. Find all qualified candidates for this specific project
       const candidates = personnel.filter(p => {
         const skillMatch = p.skills.includes('All') || p.skills.includes(project.category);
         const countryMatch = p.allowedCountries.includes('GLOBAL') || p.allowedCountries.includes(project.country);
-        
-        // Availability: No overlapping projects
         const isCurrentlyWorking = updatedProjects.some(otherP => 
           otherP.assignedPersonnel.includes(p.name) &&
           areIntervalsOverlapping(
@@ -210,37 +146,18 @@ function App() {
             { start: startOfDay(parseISO(otherP.startDate)), end: startOfDay(parseISO(otherP.deadline)) }
           )
         );
-
-        // Availability: No leave conflict
         const hasLeaveConflict = p.unavailableDates.some(date => {
           const leaveDate = startOfDay(parseISO(date));
           return leaveDate >= startOfDay(parseISO(project.startDate)) && leaveDate <= startOfDay(parseISO(project.deadline));
         });
-
         return skillMatch && countryMatch && !isCurrentlyWorking && !hasLeaveConflict;
       });
 
       if (candidates.length > 0) {
-        // 2. Equal Distribution & Specialist Priority:
-        // First, sort by current workload (fewer projects first).
-        // Second, if workload is tied, pick the person with FEWER total skills (Specialist).
-        const sortedCandidates = [...candidates].sort((a, b) => {
-          const countA = updatedProjects.filter(p => p.assignedPersonnel.includes(a.name)).length;
-          const countB = updatedProjects.filter(p => p.assignedPersonnel.includes(b.name)).length;
-          
-          if (countA !== countB) {
-            return countA - countB;
-          }
-          
-          // Tie-breaker: Specialist Priority
-          return (a.skills?.length || 0) - (b.skills?.length || 0);
-        });
-
-        const chosenOne = sortedCandidates[0];
+        const chosenOne = candidates[0];
         updatedProjects = updatedProjects.map(p => p.id === project.id ? { ...p, assignedPersonnel: [chosenOne.name] } : p);
       }
     });
-
     setProjects(updatedProjects);
     if (selectedProject) {
       const updatedSelected = updatedProjects.find(p => p.id === selectedProject.id);
@@ -423,11 +340,6 @@ function App() {
         };
 
         const coords = stateCoords[state] || countryCoords[country] || [0, 0];
-        // Add slight jitter to prevent markers at the exact same coordinate from hiding each other
-        const jitteredCoords: [number, number] = [
-          coords[0] + (Math.random() - 0.5) * 0.5,
-          coords[1] + (Math.random() - 0.5) * 0.5
-        ];
 
         let startDate = '2026-03-01';
         let deadline = '2026-03-15';
@@ -456,7 +368,7 @@ function App() {
           category: category,
           quantity: 50, status: calculateStatus(startDate, deadline), assignedPersonnel: [],
           startDate: startDate, deadline: deadline,
-          coordinates: jitteredCoords,
+          coordinates: [-95.71, 37.09],
           partNumber: partNumber
         };
       });
@@ -568,7 +480,11 @@ function App() {
               }
 
               certifications[skillName] = dateStr;
-              skills.push(skillName);
+              
+              // Only add to active skills if date is now or past
+              if (!certDate || !isAfter(startOfDay(certDate), startOfDay(today))) {
+                skills.push(skillName);
+              }
             }
           }
 
@@ -695,7 +611,7 @@ function App() {
         </div>
         
         <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center', minWidth: '300px' }}>
-          <FilterBar personnelOptions={useMemo(() => personnel.map(p => p.name).sort(), [personnel])} countryOptions={useMemo(() => uniqueCountries, [uniqueCountries])} categoryOptions={uniqueCategories} statusOptions={['planning', 'ongoing', 'delay', 'on-hold']} filters={filters} setFilters={setFilters} />
+          <FilterBar personnelOptions={useMemo(() => personnel.map(p => p.name).sort(), [personnel])} countryOptions={useMemo(() => uniqueCountries, [uniqueCountries])} categoryOptions={useMemo(() => Array.from(new Set(projects.map(p => p.category))).sort(), [projects])} statusOptions={['planning', 'ongoing', 'delay', 'on-hold']} filters={filters} setFilters={setFilters} />
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -720,12 +636,12 @@ function App() {
               <button onClick={() => setViewMode('personnel')} style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'personnel' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)', color: viewMode === 'personnel' ? THEME.navy : '#fff', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><UserCircle size={16} /> Personnel</button>
             </div>
             <div style={{ height: '650px', position: 'relative', backgroundColor: THEME.surface, borderTop: `1px solid ${THEME.border}` }}>
-              {viewMode === 'map' ? <WorldMap projects={filteredProjects} onMarkerClick={handleSelectProject} position={mapPosition} setPosition={setMapPosition} selectedProjectId={selectedProject?.id} /> : viewMode === 'table' ? <div style={{ height: '100%', overflowY: 'auto' }}><ProjectTable projects={filteredProjects} onProjectClick={handleSelectProject} selectedProjectId={selectedProject?.id} /></div> : <div style={{ height: '100%', overflowY: 'auto' }}><PersonnelTable personnel={personnelWithActiveSkills} projects={projects} onPersonnelClick={handleSelectPersonnel} selectedPersonnelId={selectedPersonnel?.id} today={today} /></div>}
+              {viewMode === 'map' ? <WorldMap projects={filteredProjects} onMarkerClick={handleSelectProject} position={mapPosition} setPosition={setMapPosition} selectedProjectId={selectedProject?.id} /> : viewMode === 'table' ? <div style={{ height: '100%', overflowY: 'auto' }}><ProjectTable projects={filteredProjects} onProjectClick={handleSelectProject} selectedProjectId={selectedProject?.id} /></div> : <div style={{ height: '100%', overflowY: 'auto' }}><PersonnelTable personnel={personnel} projects={projects} onPersonnelClick={handleSelectPersonnel} selectedPersonnelId={selectedPersonnel?.id} /></div>}
             </div>
           </div>
 
           <div style={{ backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, padding: '2.5rem', borderTop: `6px solid ${THEME.navy}` }}>
-            <SchedulingWorkbench projects={filteredProjects} allProjects={projects} personnel={personnelWithActiveSkills} onAssign={handleAssign} onUnassign={handleUnassign} selectedProjectId={selectedProject?.id} onSelectProject={handleSelectProject} onSelectPersonnel={handleSelectPersonnel} today={today} />
+            <SchedulingWorkbench projects={filteredProjects} personnel={personnel} onAssign={handleAssign} onUnassign={handleUnassign} selectedProjectId={selectedProject?.id} onSelectProject={handleSelectProject} onSelectPersonnel={handleSelectPersonnel} />
           </div>
 
           <div style={{ height: '550px', backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderTop: `6px solid ${THEME.navy}` }}>
@@ -736,9 +652,9 @@ function App() {
         <div style={{ width: '420px', flexShrink: 0, alignSelf: 'flex-start' }}>
           <div style={{ position: 'sticky', top: '100px' }}>
             {selectedProject ? (
-              <ProjectDetails project={selectedProject} personnel={personnelWithActiveSkills} onClose={() => setSelectedProject(null)} onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} onDelete={handleDeleteProject} onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} onToggleOnHold={handleToggleOnHold} />
+              <ProjectDetails project={selectedProject} personnel={personnel} onClose={() => setSelectedProject(null)} onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} onDelete={handleDeleteProject} onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} onToggleOnHold={handleToggleOnHold} />
             ) : selectedPersonnel ? (
-              <PersonnelDetails person={personnelWithActiveSkills.find(p => p.id === selectedPersonnel.id) || selectedPersonnel} projects={projects} onClose={() => setSelectedPersonnel(null)} onEdit={(p) => { setModalType('personnel'); setModalInitialData(p); setIsModalOpen(true); }} onUnassign={handleUnassign} />
+              <PersonnelDetails person={selectedPersonnel} projects={projects} onClose={() => setSelectedPersonnel(null)} onEdit={() => { setModalType('personnel'); setModalInitialData(null); setIsModalOpen(true); }} onUnassign={handleUnassign} />
             ) : (
               <div style={{ 
                 borderRadius: '20px', 
@@ -762,24 +678,7 @@ function App() {
           </div>
         </div>
       </div>
-      <AddModal 
-        isOpen={isModalOpen} 
-        type={modalType} 
-        initialData={modalInitialData} 
-        onClose={() => setIsModalOpen(false)} 
-        onAddProject={handleAddOrUpdateProject} 
-        onAddPersonnel={(p) => {
-          setPersonnel(prev => {
-            const exists = prev.find(x => x.id === p.id);
-            return exists ? prev.map(x => x.id === p.id ? p : x) : [p, ...prev];
-          });
-          if (selectedPersonnel?.id === p.id) {
-            setSelectedPersonnel(p);
-          }
-        }} 
-        availableCountries={uniqueCountries}
-        availableCategories={uniqueCategories}
-      />
+      <AddModal isOpen={isModalOpen} type={modalType} initialData={modalInitialData} onClose={() => setIsModalOpen(false)} onAddProject={handleAddOrUpdateProject} onAddPersonnel={(p) => setPersonnel(prev => { const exists = prev.find(x => x.id === p.id); return exists ? prev.map(x => x.id === p.id ? p : x) : [p, ...prev]; })} availableCountries={uniqueCountries} />
     </div>
   )
 }

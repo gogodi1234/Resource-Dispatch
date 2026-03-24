@@ -103,8 +103,9 @@ function App() {
 
   const uniqueCountries = useMemo(() => {
     const fromProjects = projects.map(p => p.country);
-    return Array.from(new Set(fromProjects)).filter(c => c && c !== 'GLOBAL').sort();
-  }, [projects]);
+    const fromPersonnel = personnel.flatMap(p => p.allowedCountries);
+    return Array.from(new Set([...fromProjects, ...fromPersonnel])).filter(c => c && c !== 'GLOBAL').sort();
+  }, [projects, personnel]);
 
   const uniqueCategories = useMemo(() => {
     const fromProjects = projects.map(p => p.category);
@@ -135,39 +136,6 @@ function App() {
   };
 
   const handleAssign = (projectId: string, personnelName: string) => {
-    const targetProject = projects.find(p => p.id === projectId);
-    
-    if (targetProject) {
-      const getInterval = (p: Project) => {
-        const start = startOfDay(parseISO(p.startDate));
-        let end = startOfDay(parseISO(p.deadline));
-        // If delayed/overdue, extend end date to today to reflect active status
-        if ((p.status === 'delay' || isAfter(today, end)) && p.status !== 'completed') {
-          end = startOfDay(today);
-        }
-        return { start, end: isBefore(end, start) ? start : end };
-      };
-
-      const targetInterval = getInterval(targetProject);
-      
-      const conflicts = projects.filter(p => 
-        p.id !== projectId &&
-        p.assignedPersonnel.includes(personnelName) &&
-        p.status !== 'completed' &&
-        areIntervalsOverlapping(targetInterval, getInterval(p))
-      );
-
-      if (conflicts.length > 0) {
-        const conflictDetails = conflicts.map(p => `• ${p.name} (${p.startDate} ~ ${p.deadline})`).join('\n');
-        const proceed = confirm(
-          `⚠️ Schedule Conflict Detected for ${personnelName}\n\n` +
-          `They are already assigned to the following overlapping project(s):\n${conflictDetails}\n\n` +
-          `Do you want to proceed with the assignment?`
-        );
-        if (!proceed) return;
-      }
-    }
-
     setProjects(prev => {
       const updated = prev.map(p => p.id === projectId ? { ...p, assignedPersonnel: [...p.assignedPersonnel, personnelName] } : p);
       const target = updated.find(p => p.id === projectId);
@@ -695,7 +663,7 @@ function App() {
         </div>
         
         <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center', minWidth: '300px' }}>
-          <FilterBar personnelOptions={useMemo(() => personnel.map(p => p.name).sort(), [personnel])} countryOptions={useMemo(() => uniqueCountries, [uniqueCountries])} categoryOptions={uniqueCategories} statusOptions={['planning', 'ongoing', 'delay', 'on-hold']} filters={filters} setFilters={setFilters} />
+          <FilterBar personnelOptions={useMemo(() => personnel.map(p => p.name).sort(), [personnel])} countryOptions={useMemo(() => uniqueCountries, [uniqueCountries])} categoryOptions={useMemo(() => Array.from(new Set(projects.map(p => p.category))).sort(), [projects])} statusOptions={['planning', 'ongoing', 'delay', 'on-hold']} filters={filters} setFilters={setFilters} />
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -725,7 +693,7 @@ function App() {
           </div>
 
           <div style={{ backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, padding: '2.5rem', borderTop: `6px solid ${THEME.navy}` }}>
-            <SchedulingWorkbench projects={filteredProjects} allProjects={projects} personnel={personnelWithActiveSkills} onAssign={handleAssign} onUnassign={handleUnassign} selectedProjectId={selectedProject?.id} onSelectProject={handleSelectProject} onSelectPersonnel={handleSelectPersonnel} today={today} />
+            <SchedulingWorkbench projects={filteredProjects} personnel={personnelWithActiveSkills} onAssign={handleAssign} onUnassign={handleUnassign} selectedProjectId={selectedProject?.id} onSelectProject={handleSelectProject} onSelectPersonnel={handleSelectPersonnel} />
           </div>
 
           <div style={{ height: '550px', backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderTop: `6px solid ${THEME.navy}` }}>

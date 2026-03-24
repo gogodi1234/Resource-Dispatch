@@ -15,10 +15,9 @@ interface AddModalProps {
   onAddProject: (project: Project) => void;
   onAddPersonnel: (person: Personnel) => void;
   availableCountries: string[];
-  availableCategories: string[];
 }
 
-const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose, onAddProject, onAddPersonnel, availableCountries, availableCategories }) => {
+const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose, onAddProject, onAddPersonnel, availableCountries }) => {
   const [projectData, setProjectData] = useState<Partial<Project>>({
     status: 'ongoing', assignedPersonnel: [], country: '', state: '', city: '', startDate: '', deadline: '', category: '', name: '', customer: ''
   });
@@ -27,20 +26,10 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
     name: '', role: '', skills: [], allowedCountries: [], unavailableDates: []
   });
 
-  const [otherSkill, setOtherSkill] = useState('');
-  const [otherCountry, setOtherCountry] = useState('');
-  const [showOtherSkill, setShowOtherSkill] = useState(false);
-  const [showOtherCountry, setShowOtherCountry] = useState(false);
-
   const [leaveRange, setLeaveRange] = useState({ start: '', end: '' });
 
   useEffect(() => {
     if (isOpen) {
-      setOtherSkill('');
-      setOtherCountry('');
-      setShowOtherSkill(false);
-      setShowOtherCountry(false);
-
       if (type === 'project' && initialData) {
         setProjectData(initialData as Project);
       } else if (type === 'personnel' && initialData) {
@@ -57,21 +46,8 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
 
   const handlePersonnelSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const finalSkills = [...(personnelData.skills || [])];
-    if (showOtherSkill && otherSkill.trim()) {
-      finalSkills.push(otherSkill.trim());
-    }
-
-    const finalCountries = [...(personnelData.allowedCountries || [])];
-    if (showOtherCountry && otherCountry.trim()) {
-      finalCountries.push(otherCountry.trim().toUpperCase());
-    }
-
     onAddPersonnel({
       ...personnelData,
-      skills: Array.from(new Set(finalSkills)),
-      allowedCountries: Array.from(new Set(finalCountries)),
       id: (initialData as Personnel)?.id || `p-${Date.now()}`,
       workload: 0
     } as Personnel);
@@ -123,7 +99,7 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
   const inputStyle = { width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #e5e7eb', marginTop: '0.25rem', marginBottom: '1rem', fontSize: '0.875rem' };
   const labelStyle = { fontSize: '0.875rem', fontWeight: 600, color: '#374151' };
 
-  const categories = ["All", ...availableCategories];
+  const categories = ["All", "UPS", "CDU", "Cooling", "Valve", "Battery", "Other"];
   const countries = ["GLOBAL", ...availableCountries];
 
   return (
@@ -154,19 +130,7 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
                     {cat}
                   </label>
                 ))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showOtherSkill} onChange={e => setShowOtherSkill(e.target.checked)} />
-                  Other
-                </label>
               </div>
-              {showOtherSkill && (
-                <input 
-                  placeholder="Type new skill..." 
-                  style={{ ...inputStyle, marginTop: '0.5rem', marginBottom: 0 }} 
-                  value={otherSkill} 
-                  onChange={e => setOtherSkill(e.target.value)} 
-                />
-              )}
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -178,19 +142,7 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
                     {c}
                   </label>
                 ))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showOtherCountry} onChange={e => setShowOtherCountry(e.target.checked)} />
-                  Other
-                </label>
               </div>
-              {showOtherCountry && (
-                <input 
-                  placeholder="Type new country (e.g. KR, UK)..." 
-                  style={{ ...inputStyle, marginTop: '0.5rem', marginBottom: 0 }} 
-                  value={otherCountry} 
-                  onChange={e => setOtherCountry(e.target.value)} 
-                />
-              )}
             </div>
 
             <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>

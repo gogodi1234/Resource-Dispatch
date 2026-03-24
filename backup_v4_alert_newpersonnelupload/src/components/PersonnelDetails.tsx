@@ -1,7 +1,7 @@
 import React from "react";
 import type { Project, Personnel } from "../data/mockData";
 import { X, User, Shield, Globe, Calendar, ExternalLink, Briefcase } from "lucide-react";
-// import { parseISO, startOfDay } from 'date-fns';
+import { isWithinInterval, parseISO, startOfDay } from 'date-fns';
 
 interface PersonnelDetailsProps {
   person: Personnel;
@@ -12,20 +12,9 @@ interface PersonnelDetailsProps {
 }
 
 const PersonnelDetails: React.FC<PersonnelDetailsProps> = ({ person, projects, onClose, onEdit, onUnassign }) => {
-  // const today = startOfDay(new Date(2026, 2, 10)); // March 10, 2026
+  const today = startOfDay(new Date(2026, 2, 10)); // March 10, 2026
 
-  const assignedProjects = projects
-    .filter(p => p.assignedPersonnel.includes(person.name) && p.status !== 'completed')
-    .sort((a, b) => {
-      const priority: Record<string, number> = { 'delay': 0, 'on-hold': 1, 'ongoing': 2, 'planning': 3 };
-      const pA = priority[a.status] ?? 99;
-      const pB = priority[b.status] ?? 99;
-      
-      if (pA !== pB) return pA - pB;
-      
-      // Secondary sort: startDate
-      return a.startDate.localeCompare(b.startDate);
-    });
+  const assignedProjects = projects.filter(p => p.assignedPersonnel.includes(person.name));
 
   return (
     <div className="personnel-details" style={{ 
@@ -99,14 +88,18 @@ const PersonnelDetails: React.FC<PersonnelDetailsProps> = ({ person, projects, o
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {assignedProjects.length > 0 ? assignedProjects.map(p => {
-              // Show tag for anything that isn't 'planning'
-              const showTag = p.status !== 'planning';
+              const isProjectActive = isWithinInterval(today, { 
+                start: startOfDay(parseISO(p.startDate)), 
+                end: startOfDay(parseISO(p.deadline)) 
+              });
+
+              // Logic: Only show tag if it is 'delay' OR (it is 'ongoing' AND active today)
+              const showTag = p.status === 'delay' || (p.status === 'ongoing' && isProjectActive);
 
               const getStatusStyle = (status: string) => {
                 switch (status) {
                   case 'delay': return { bg: '#FEE2E2', text: '#EF4444' };
                   case 'ongoing': return { bg: '#ECFDF5', text: '#10B981' };
-                  case 'on-hold': return { bg: '#FEF3C7', text: '#D97706' }; // Amber for On Hold
                   default: return { bg: '#F3F4F6', text: '#374151' };
                 }
               };
