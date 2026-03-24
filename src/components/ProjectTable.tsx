@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Project } from '../data/mockData';
-import { ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ProjectTableProps {
   projects: Project[];
@@ -69,7 +69,6 @@ const ProjectTable: React.FC<ProjectTableProps> = ({ projects, onProjectClick, s
             <Th label="Quantity" k="quantity" />
             <Th label="Deadline" k="deadline" />
             <Th label="Status" k="status" />
-            <th style={{ borderBottom: '2px solid #f3f4f6' }}></th>
           </tr>
         </thead>
         <tbody>
@@ -96,9 +95,6 @@ const ProjectTable: React.FC<ProjectTableProps> = ({ projects, onProjectClick, s
                 <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4b5563' }}>{project.deadline}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <span style={getStatusStyle(project.status)}>{project.status}</span>
-                </td>
-                <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                  <ExternalLink size={16} color={isSelected ? "#4F46E5" : "#9ca3af"} />
                 </td>
               </tr>
             );

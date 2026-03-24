@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Personnel, Project } from '../data/mockData';
-import { User, ExternalLink } from 'lucide-react';
+import { User } from 'lucide-react';
 import { format, isWithinInterval, parseISO, startOfDay } from 'date-fns';
 
 interface PersonnelTableProps {
@@ -46,7 +46,6 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, on
             <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', fontWeight: 700, borderBottom: '2px solid #f1f5f9' }}>COUNTRIES</th>
             <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', fontWeight: 700, borderBottom: '2px solid #f1f5f9' }}>ACTIVE PROJECTS</th>
             <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', fontWeight: 700, borderBottom: '2px solid #f1f5f9' }}>STATUS</th>
-            <th style={{ borderBottom: '2px solid #f1f5f9' }}></th>
           </tr>
         </thead>
         <tbody>
@@ -96,9 +95,6 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, on
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: status.color }}></div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: status.color }}>{status.label}</span>
                   </div>
-                </td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
-                  <ExternalLink size={16} color="#94a3b8" />
                 </td>
               </tr>
             );
