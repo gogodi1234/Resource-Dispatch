@@ -1,7 +1,6 @@
 import React from "react";
 import type { Project, Personnel } from "../data/mockData";
-import { X, User, Shield, Globe, Calendar, ExternalLink, Briefcase } from "lucide-react";
-// import { parseISO, startOfDay } from 'date-fns';
+import { X, User, Shield, Globe, Calendar, Briefcase, Pencil } from "lucide-react";
 
 interface PersonnelDetailsProps {
   person: Personnel;
@@ -40,9 +39,22 @@ const PersonnelDetails: React.FC<PersonnelDetailsProps> = ({ person, projects, o
       {/* Premium Top Bar */}
       <div style={{ height: '4px', backgroundColor: '#4C8CE4', width: '100%' }} />
 
-      <button onClick={onClose} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', border: 'none', background: 'rgba(255,255,255,0.8)', borderRadius: '50%', padding: '4px', cursor: 'pointer', zIndex: 10 }}>
-        <X size={18} color="#64748b" />
-      </button>
+      <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+        <button 
+          onClick={() => onEdit(person)} 
+          title="Edit profile" 
+          style={{ border: 'none', background: 'rgba(255,255,255,0.8)', borderRadius: '50%', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+        >
+          <Pencil size={16} color="#4C8CE4" />
+        </button>
+        <button 
+          onClick={onClose} 
+          title="Close details"
+          style={{ border: 'none', background: 'rgba(255,255,255,0.8)', borderRadius: '50%', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+        >
+          <X size={16} color="#64748b" />
+        </button>
+      </div>
 
       <div style={{ padding: '1.5rem' }}>
         {/* Header Section */}
@@ -140,21 +152,6 @@ const PersonnelDetails: React.FC<PersonnelDetailsProps> = ({ person, projects, o
             )}
           </div>
         </div>
-      </div>
-
-      {/* Footer Action Tray */}
-      <div style={{ 
-        backgroundColor: '#F1F5F9', 
-        padding: '1.25rem', 
-        borderTop: '1px solid #E2E8F0',
-        marginTop: 'auto'
-      }}>
-        <button 
-          onClick={() => onEdit(person)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.75rem', borderRadius: '10px', border: '1px solid #4C8CE4', color: '#4C8CE4', backgroundColor: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800 }}
-        >
-          <ExternalLink size={16} /> Edit Profile
-        </button>
       </div>
     </div>
   );
