@@ -57,9 +57,17 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, on
             return (
               <tr 
                 key={p.id}
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('personnelName', p.name);
+                  e.currentTarget.style.opacity = '0.5';
+                }}
+                onDragEnd={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
                 onClick={() => onPersonnelClick(p)}
                 style={{ 
-                  borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                  borderBottom: '1px solid #f1f5f9', cursor: 'grab',
                   backgroundColor: isSelected ? '#f5f3ff' : 'transparent',
                   boxShadow: isSelected ? 'inset 4px 0 0 #4F46E5' : 'none'
                 }}

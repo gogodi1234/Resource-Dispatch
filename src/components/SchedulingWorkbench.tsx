@@ -123,7 +123,7 @@ const SchedulingWorkbench: React.FC<SchedulingWorkbenchProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '450px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '400px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.75rem', borderBottom: '1px solid #e5e7eb', marginBottom: '1rem' }}>
         <BarChart3 size={20} color="#4F46E5" />
         <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Scheduling Workbench</h2>
@@ -204,7 +204,18 @@ const SchedulingWorkbench: React.FC<SchedulingWorkbenchProps> = ({
                 const hasWarning = !countryMatch || !skillMatch;
 
                 return (
-                  <div key={person.id} style={{ padding: '0.75rem', borderRadius: '12px', border: '1px solid rgba(76, 140, 228, 0.2)', backgroundColor: isAssigned ? '#ecfdf5' : '#fff' }}>
+                  <div 
+                    key={person.id} 
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('personnelName', person.name);
+                      e.currentTarget.style.opacity = '0.5';
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    style={{ padding: '0.75rem', borderRadius: '12px', border: '1px solid rgba(76, 140, 228, 0.2)', backgroundColor: isAssigned ? '#ecfdf5' : '#fff', cursor: 'grab' }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div onClick={() => onSelectPersonnel?.(person)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>{person.name}</div>

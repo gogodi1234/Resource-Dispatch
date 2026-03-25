@@ -719,24 +719,24 @@ function App() {
               <button onClick={() => setViewMode('table')} style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'table' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)', color: viewMode === 'table' ? THEME.navy : '#fff', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><List size={16} /> Project List</button>
               <button onClick={() => setViewMode('personnel')} style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'personnel' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)', color: viewMode === 'personnel' ? THEME.navy : '#fff', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}><UserCircle size={16} /> Personnel</button>
             </div>
-            <div style={{ height: '650px', position: 'relative', backgroundColor: THEME.surface, borderTop: `1px solid ${THEME.border}` }}>
+            <div style={{ height: '500px', position: 'relative', backgroundColor: THEME.surface, borderTop: `1px solid ${THEME.border}` }}>
               {viewMode === 'map' ? <WorldMap projects={filteredProjects} onMarkerClick={handleSelectProject} position={mapPosition} setPosition={setMapPosition} selectedProjectId={selectedProject?.id} /> : viewMode === 'table' ? <div style={{ height: '100%', overflowY: 'auto' }}><ProjectTable projects={filteredProjects} onProjectClick={handleSelectProject} selectedProjectId={selectedProject?.id} /></div> : <div style={{ height: '100%', overflowY: 'auto' }}><PersonnelTable personnel={personnelWithActiveSkills} projects={projects} onPersonnelClick={handleSelectPersonnel} selectedPersonnelId={selectedPersonnel?.id} today={today} /></div>}
             </div>
           </div>
 
-          <div style={{ backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, padding: '2.5rem', borderTop: `6px solid ${THEME.navy}` }}>
+          <div style={{ backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, padding: '1.5rem 2rem', borderTop: `6px solid ${THEME.navy}` }}>
             <SchedulingWorkbench projects={filteredProjects} allProjects={projects} personnel={personnelWithActiveSkills} onAssign={handleAssign} onUnassign={handleUnassign} selectedProjectId={selectedProject?.id} onSelectProject={handleSelectProject} onSelectPersonnel={handleSelectPersonnel} today={today} />
           </div>
 
-          <div style={{ height: '550px', backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderTop: `6px solid ${THEME.navy}` }}>
+          <div style={{ height: '400px', backgroundColor: THEME.workAreaBg, borderRadius: '20px', border: `1px solid ${THEME.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderTop: `6px solid ${THEME.navy}` }}>
             <TimelineView projects={filteredProjects} personnel={filteredPersonnel} selectedProjectId={selectedProject?.id} selectedPersonnelId={selectedPersonnel?.id} />
           </div>
         </div>
 
-        <div style={{ width: '420px', flexShrink: 0, alignSelf: 'flex-start' }}>
+        <div style={{ width: '500px', flexShrink: 0, alignSelf: 'flex-start' }}>
           <div style={{ position: 'sticky', top: '100px' }}>
             {selectedProject ? (
-              <ProjectDetails project={selectedProject} personnel={personnelWithActiveSkills} onClose={() => setSelectedProject(null)} onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} onDelete={handleDeleteProject} onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} onToggleOnHold={handleToggleOnHold} />
+              <ProjectDetails project={selectedProject} personnel={personnelWithActiveSkills} allProjects={projects} onClose={() => setSelectedProject(null)} onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} onDelete={handleDeleteProject} onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} onToggleOnHold={handleToggleOnHold} onAssign={handleAssign} today={today} />
             ) : selectedPersonnel ? (
               <PersonnelDetails person={personnelWithActiveSkills.find(p => p.id === selectedPersonnel.id) || selectedPersonnel} projects={projects} onClose={() => setSelectedPersonnel(null)} onEdit={(p) => { setModalType('personnel'); setModalInitialData(p); setIsModalOpen(true); }} onUnassign={handleUnassign} />
             ) : (
