@@ -60,7 +60,7 @@ const SchedulingWorkbench: React.FC<SchedulingWorkbenchProps> = ({
     // 1. Check for overlapping projects against ALL projects (not just filtered)
     const overlappingProjects = allProjects.filter(prj => {
       if (prj.id === projectId) return false;
-      if (prj.status === 'completed') return false;
+      if (prj.status === 'completed' || prj.status === 'on-hold') return false;
       if (!prj.assignedPersonnel.includes(person.name)) return false;
 
       const prjStart = startOfDay(parseISO(prj.startDate));

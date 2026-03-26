@@ -50,7 +50,7 @@ const PersonnelTable: React.FC<PersonnelTableProps> = ({ personnel, projects, on
         </thead>
         <tbody>
           {personnel.map(p => {
-            const assignedCount = projects.filter(prj => prj.assignedPersonnel.includes(p.name) && prj.status !== 'completed').length;
+            const assignedCount = projects.filter(prj => prj.assignedPersonnel.includes(p.name) && prj.status !== 'completed' && prj.status !== 'on-hold').length;
             const isSelected = p.id === selectedPersonnelId;
             const status = getPersonnelStatus(p);
 

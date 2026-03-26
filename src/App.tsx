@@ -181,14 +181,33 @@ function App() {
         const skillMatch = p.skills.includes('All') || p.skills.includes(project.category);
         const countryMatch = p.allowedCountries.includes('GLOBAL') || p.allowedCountries.includes(project.country);
         
-        // Availability: No overlapping projects
-        const isCurrentlyWorking = updatedProjects.some(otherP => 
-          otherP.assignedPersonnel.includes(p.name) &&
-          areIntervalsOverlapping(
-            { start: startOfDay(parseISO(project.startDate)), end: startOfDay(parseISO(project.deadline)) },
-            { start: startOfDay(parseISO(otherP.startDate)), end: startOfDay(parseISO(otherP.deadline)) }
-          )
-        );
+        // Availability: No overlapping projects (excluding completed and on-hold)
+        const isCurrentlyWorking = updatedProjects.some(otherP => {
+          if (otherP.status === 'completed' || otherP.status === 'on-hold') return false;
+          if (!otherP.assignedPersonnel.includes(p.name)) return false;
+
+          const otherStart = startOfDay(parseISO(otherP.startDate));
+          let otherEnd = startOfDay(parseISO(otherP.deadline));
+          
+          // If delayed, it's still active today
+          if (otherP.status === 'delay' && isAfter(today, otherEnd)) {
+            otherEnd = startOfDay(today);
+          }
+
+          const currentStart = startOfDay(parseISO(project.startDate));
+          let currentEnd = startOfDay(parseISO(project.deadline));
+          
+          // If the project we're assigning is already delayed, it's also active today
+          if (project.status === 'delay' && isAfter(today, currentEnd)) {
+            currentEnd = startOfDay(today);
+          }
+
+          return areIntervalsOverlapping(
+            { start: currentStart, end: currentEnd },
+            { start: otherStart, end: otherEnd },
+            { inclusive: true }
+          );
+        });
 
         // Availability: No leave conflict
         const hasLeaveConflict = p.unavailableDates.some(date => {
@@ -201,11 +220,11 @@ function App() {
 
       if (candidates.length > 0) {
         // 2. Equal Distribution & Specialist Priority:
-        // First, sort by current workload (fewer projects first).
+        // First, sort by current workload (fewer active projects first).
         // Second, if workload is tied, pick the person with FEWER total skills (Specialist).
         const sortedCandidates = [...candidates].sort((a, b) => {
-          const countA = updatedProjects.filter(p => p.assignedPersonnel.includes(a.name)).length;
-          const countB = updatedProjects.filter(p => p.assignedPersonnel.includes(b.name)).length;
+          const countA = updatedProjects.filter(p => p.status !== 'completed' && p.status !== 'on-hold' && p.assignedPersonnel.includes(a.name)).length;
+          const countB = updatedProjects.filter(p => p.status !== 'completed' && p.status !== 'on-hold' && p.assignedPersonnel.includes(b.name)).length;
           
           if (countA !== countB) {
             return countA - countB;
