@@ -185,6 +185,17 @@ function App() {
     });
   };
 
+  const handleUnassignAll = (projectId: string) => {
+    if (confirm('Unassign all personnel from this project?')) {
+      setProjects(prev => {
+        const updated = prev.map(p => p.id === projectId ? { ...p, assignedPersonnel: [] } : p);
+        const target = updated.find(p => p.id === projectId);
+        if (selectedProject?.id === projectId && target) setSelectedProject(target);
+        return updated;
+      });
+    }
+  };
+
   const handleAutoAssign = () => {
     let updatedProjects = [...projects];
     
@@ -736,7 +747,22 @@ function App() {
         <div style={{ width: '500px', flexShrink: 0, alignSelf: 'flex-start' }}>
           <div style={{ position: 'sticky', top: '100px' }}>
             {selectedProject ? (
-              <ProjectDetails project={selectedProject} personnel={personnelWithActiveSkills} allProjects={projects} onClose={() => setSelectedProject(null)} onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} onDelete={handleDeleteProject} onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} onToggleOnHold={handleToggleOnHold} onAssign={handleAssign} today={today} />
+              <ProjectDetails 
+                project={selectedProject} 
+                personnel={personnelWithActiveSkills} 
+                allProjects={projects} 
+                onClose={() => setSelectedProject(null)} 
+                onEdit={(p) => { setModalType('project'); setModalInitialData(p); setIsModalOpen(true); }} 
+                onDelete={handleDeleteProject} 
+                onMarkComplete={(id) => handleUpdateStatus(id, 'completed')} 
+                onMarkDelay={(id) => handleUpdateStatus(id, 'delay')} 
+                onUpdateStatus={handleUpdateStatus}
+                onToggleOnHold={handleToggleOnHold} 
+                onAssign={handleAssign} 
+                onUnassign={handleUnassign}
+                onUnassignAll={handleUnassignAll}
+                today={today} 
+              />
             ) : selectedPersonnel ? (
               <PersonnelDetails person={personnelWithActiveSkills.find(p => p.id === selectedPersonnel.id) || selectedPersonnel} projects={projects} onClose={() => setSelectedPersonnel(null)} onEdit={(p) => { setModalType('personnel'); setModalInitialData(p); setIsModalOpen(true); }} onUnassign={handleUnassign} />
             ) : (

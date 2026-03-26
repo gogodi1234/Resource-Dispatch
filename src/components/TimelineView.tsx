@@ -63,14 +63,36 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, personnel, select
 
   return (
     <div style={{ backgroundColor: '#fff', borderRadius: '16px', border: '1px solid rgba(76, 140, 228, 0.2)', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100%', minHeight: '400px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setViewMode('projects')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: viewMode === 'projects' ? '#4F46E5' : 'transparent', color: viewMode === 'projects' ? '#fff' : '#64748b', fontWeight: 700, fontSize: '0.8rem' }}>
-            <CalendarIcon size={14} /> Project Timeline
-          </button>
-          <button onClick={() => setViewMode('personnel')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: viewMode === 'personnel' ? '#4F46E5' : 'transparent', color: viewMode === 'personnel' ? '#fff' : '#64748b', fontWeight: 700, fontSize: '0.8rem' }}>
-            <UserIcon size={14} /> Personnel Schedule
-          </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.25rem', marginRight: '1rem' }}>
+            <button onClick={() => setViewMode('projects')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: viewMode === 'projects' ? '#4F46E5' : 'transparent', color: viewMode === 'projects' ? '#fff' : '#64748b', fontWeight: 700, fontSize: '0.8rem' }}>
+              <CalendarIcon size={14} /> Project Timeline
+            </button>
+            <button onClick={() => setViewMode('personnel')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', border: 'none', backgroundColor: viewMode === 'personnel' ? '#4F46E5' : 'transparent', color: viewMode === 'personnel' ? '#fff' : '#64748b', fontWeight: 700, fontSize: '0.8rem' }}>
+              <UserIcon size={14} /> Personnel Schedule
+            </button>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#FCA5A5' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>DELAY</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#6EE7B7' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>ONGOING</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#C4B5FD' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>PLANNING</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#94A3B8' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>ON-HOLD</span>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>

@@ -12,15 +12,19 @@ interface ProjectDetailsProps {
   onDelete: (projectId: string) => void;
   onMarkComplete: (projectId: string) => void;
   onMarkDelay: (projectId: string) => void;
+  onUpdateStatus: (projectId: string, status: Project['status']) => void;
   onToggleOnHold: (projectId: string) => void;
   onAssign: (projectId: string, personnelName: string) => void;
+  onUnassign: (projectId: string, personnelName: string) => void;
+  onUnassignAll: (projectId: string) => void;
   today: Date;
 }
 
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({ 
-  project, personnel, allProjects, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onToggleOnHold, onAssign, today
+  project, personnel, allProjects, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onUpdateStatus, onToggleOnHold, onAssign, onUnassign, onUnassignAll, today
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isPoolDragOver, setIsPoolDragOver] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   const assignedTeam = personnel.filter(p => project.assignedPersonnel.includes(p.name));
@@ -89,9 +93,38 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     e.preventDefault();
     setIsDragOver(false);
     const personnelName = e.dataTransfer.getData('personnelName');
-    const person = personnel.find(p => p.name === personnelName);
-    if (person && !project.assignedPersonnel.includes(personnelName)) {
-      handleAssignAttempt(person);
+    const source = e.dataTransfer.getData('source');
+    
+    // Only assign if dragged from pool/outside, not if dragging within Team section
+    if (source !== 'assigned-team') {
+      const person = personnel.find(p => p.name === personnelName);
+      if (person && !project.assignedPersonnel.includes(personnelName)) {
+        handleAssignAttempt(person);
+      }
+    }
+  };
+
+  const handlePoolDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPoolDragOver(true);
+  };
+
+  const handlePoolDragLeave = () => {
+    setIsPoolDragOver(false);
+  };
+
+  const handlePoolDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPoolDragOver(false);
+    const personnelName = e.dataTransfer.getData('personnelName');
+    const source = e.dataTransfer.getData('source');
+
+    if (source === 'assigned-team' && personnelName) {
+      if (window.confirm(`Unassign ${personnelName} from this project?`)) {
+        onUnassign(project.id, personnelName);
+      }
     }
   };
 
@@ -126,7 +159,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         maxHeight: '850px'
       }}
     >
-      {isDragOver && (
+      {isDragOver && !isPoolDragOver && (
         <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(76, 140, 228, 0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 20, pointerEvents: 'none' }}>
           <UserPlus size={48} color="#4C8CE4" style={{ marginBottom: '1rem' }} />
           <span style={{ fontWeight: 800, color: '#4C8CE4', fontSize: '1.2rem' }}>Drop to Assign</span>
@@ -161,7 +194,21 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.025em' }}><Users size={14} /> Team Members ({assignedTeam.length})</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {assignedTeam.length > 0 ? assignedTeam.map(p => (
-              <div key={p.id} style={{ padding: '0.4rem 0.8rem', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{p.name}</div>
+              <div 
+                key={p.id} 
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('personnelName', p.name);
+                  e.dataTransfer.setData('source', 'assigned-team');
+                  e.currentTarget.style.opacity = '0.5';
+                }}
+                onDragEnd={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+                style={{ padding: '0.4rem 0.8rem', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', cursor: 'grab' }}
+              >
+                {p.name}
+              </div>
             )) : (
               <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', backgroundColor: 'rgba(255,255,255,0.5)', width: '100%', padding: '1rem', borderRadius: '10px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>No personnel assigned.</div>
             )}
@@ -169,7 +216,21 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         </div>
 
         {/* NEW: Personnel Pool Section */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div 
+          style={{ marginBottom: '1.5rem', position: 'relative' }}
+          onDragOver={handlePoolDragOver}
+          onDragLeave={handlePoolDragLeave}
+          onDrop={handlePoolDrop}
+        >
+          {isPoolDragOver && (
+            <div style={{
+              position: 'absolute', inset: '-8px', backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderRadius: '12px', border: '2px dashed #EF4444', zIndex: 30, pointerEvents: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <span style={{ color: '#EF4444', fontWeight: 800, fontSize: '0.9rem' }}>Drop to Unassign</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Personnel Pool</div>
             <div style={{ position: 'relative', width: '150px' }}>
@@ -185,9 +246,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                 <div 
                   key={person.id}
                   draggable={true}
-                  onDragStart={(e) => { e.dataTransfer.setData('personnelName', person.name); e.currentTarget.style.opacity = '0.5'; }}
+                  onDragStart={(e) => { e.dataTransfer.setData('personnelName', person.name); e.dataTransfer.setData('source', 'pool'); e.currentTarget.style.opacity = '0.5'; }}
                   onDragEnd={(e) => { e.currentTarget.style.opacity = '1'; }}
-                  style={{ padding: '0.75rem', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ padding: '0.75rem', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'grab' }}
                 >
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -214,6 +275,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           <button onClick={() => onMarkComplete(project.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: 'none', backgroundColor: '#10B981', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}><CheckCircle size={16} /> Mark complete</button>
         </div>
         <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '0.5rem 0' }} />
+        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Other Operation</div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <button onClick={() => onMarkDelay(project.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', backgroundColor: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}><AlertTriangle size={16} color="#EF4444" /> Flag Delay</button>
           <button onClick={() => onDelete(project.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', border: '1px solid #FEE2E2', backgroundColor: '#fff', color: '#FF0000', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}><Trash2 size={16} /> Delete</button>
