@@ -122,6 +122,7 @@ function App() {
     total: projects.filter(p => p.status !== 'completed').length,
     active: projects.filter(p => p.status === 'ongoing').length,
     delayed: projects.filter(p => p.status === 'delay').length,
+    planning: projects.filter(p => p.status === 'planning').length,
   }), [projects]);
 
   const handleSelectPersonnel = (p: Personnel) => {
@@ -668,6 +669,7 @@ function App() {
       <div style={{ padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', zIndex: 100, backgroundColor: THEME.navy, position: 'sticky', top: 0, minHeight: '85px', height: 'auto', boxSizing: 'border-box', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', gap: '0.65rem', flexShrink: 0 }}>
           <HeaderMetric icon={Box} value={stats.total} label="Total" />
+          <HeaderMetric icon={Layout} value={stats.planning} label="Planning" statusColor={THEME.planning} />
           <HeaderMetric icon={Activity} value={stats.active} label="Ongoing" statusColor={THEME.ongoing} />
           <HeaderMetric icon={AlertTriangle} value={stats.delayed} label="Delay" statusColor={THEME.delay} />
         </div>

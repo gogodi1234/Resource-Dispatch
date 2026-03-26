@@ -126,6 +126,13 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
   const categories = ["All", ...availableCategories];
   const countries = ["GLOBAL", ...availableCountries];
 
+  const powerProducts = [
+    "DPM G1 UL series", "DPM G2 UL series", "DPH G2 UL series", "DPH LV UL series", 
+    "STS UL series", "PDU UL series", "DPM G2 CE series", "DPH G2 CE series", 
+    "DPS G2 CE series", "STS CE series", "DPH G3 CE series", "RP240"
+  ];
+  const coolingProducts = ["GoCool series", "AALC", "IRHX"];
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ backgroundColor: '#fff', padding: '2rem', borderRadius: '16px', width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
@@ -147,18 +154,41 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={labelStyle}>Skills (Select 'All' or specific skills)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {categories.map(cat => (
-                  <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: cat === 'All' ? 700 : 400 }}>
-                    <input type="checkbox" checked={personnelData.skills?.includes(cat)} onChange={() => toggleSkill(cat)} />
-                    {cat}
-                  </label>
-                ))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showOtherSkill} onChange={e => setShowOtherSkill(e.target.checked)} />
-                  Other
+              
+              <div style={{ marginTop: '0.75rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 800, color: '#1E40AF', marginBottom: '0.5rem' }}>
+                  <input type="checkbox" checked={personnelData.skills?.includes('All')} onChange={() => toggleSkill('All')} />
+                  ALL SKILLS
                 </label>
+
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', marginTop: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px' }}>Power Products</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                  {powerProducts.map(cat => (
+                    <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={personnelData.skills?.includes(cat)} onChange={() => toggleSkill(cat)} />
+                      {cat}
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem', marginTop: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px' }}>Cooling Products</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                  {coolingProducts.map(cat => (
+                    <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={personnelData.skills?.includes(cat)} onChange={() => toggleSkill(cat)} />
+                      {cat}
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={showOtherSkill} onChange={e => setShowOtherSkill(e.target.checked)} />
+                    Other
+                  </label>
+                </div>
               </div>
+
               {showOtherSkill && (
                 <input 
                   placeholder="Type new skill..." 
