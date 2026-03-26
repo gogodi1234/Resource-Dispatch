@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import type { Project, Personnel } from "../data/mockData";
 import { X, MapPin, Calendar, Users, Trash2, CheckCircle, AlertTriangle, PlayCircle, PauseCircle, Pencil, UserPlus, Search, Globe, Wrench } from "lucide-react";
-import { parseISO, startOfDay, areIntervalsOverlapping, isAfter } from 'date-fns';
+import { parseISO, startOfDay, areIntervalsOverlapping, isAfter, isWithinInterval } from 'date-fns';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -66,10 +66,17 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     const countryMatch = person.allowedCountries.includes('GLOBAL') || person.allowedCountries.includes(project.country);
     const skillMatch = person.skills.includes('All') || person.skills.includes(project.category);
 
+    // Leave date checks
+    const overlappingLeaveDates = person.unavailableDates.filter(date => {
+      const leaveDate = startOfDay(parseISO(date));
+      return isWithinInterval(leaveDate, { start: newStart, end: newEnd });
+    });
+
     let warnings = [];
     if (!countryMatch) warnings.push(`not authorized for ${project.country}`);
     if (!skillMatch) warnings.push(`missing ${project.category} skill`);
     if (overlappingProjects.length > 0) warnings.push(`overlapping projects: ${overlappingProjects.map(p => p.customer).join(', ')}`);
+    if (overlappingLeaveDates.length > 0) warnings.push(`has registered leave during this project period (${overlappingLeaveDates.join(', ')})`);
 
     if (warnings.length > 0) {
       if (window.confirm(`Assignment Warning for ${person.name}:\n\n${warnings.map(w => `• ${w}`).join('\n')}\n\nForce assign?`)) {
