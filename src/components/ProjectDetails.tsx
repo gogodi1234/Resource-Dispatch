@@ -21,7 +21,7 @@ interface ProjectDetailsProps {
 }
 
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({ 
-  project, personnel, allProjects, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onUpdateStatus, onToggleOnHold, onAssign, onUnassign, onUnassignAll, today
+  project, personnel, allProjects, onClose, onEdit, onDelete, onMarkComplete, onMarkDelay, onToggleOnHold, onAssign, onUnassign, today
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isPoolDragOver, setIsPoolDragOver] = useState(false);
