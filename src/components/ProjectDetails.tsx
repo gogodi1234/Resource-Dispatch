@@ -262,9 +262,31 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                       <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>{person.name}</span>
                       {(!countryMatch || !skillMatch) && <AlertTriangle size={12} color="#F59E0B" />}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.6rem', color: countryMatch ? '#059669' : '#dc2626' }}><Globe size={10} /> {person.allowedCountries[0]}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.6rem', color: skillMatch ? '#059669' : '#dc2626' }}><Wrench size={10} /> {person.skills[0]}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.6rem', color: countryMatch ? '#059669' : '#dc2626' }}>
+                        <Globe size={10} /> 
+                        <span style={{ fontWeight: 700 }}>Authorized:</span> {person.allowedCountries.join(', ')}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                        <Wrench size={10} color={skillMatch ? '#059669' : '#64748b'} />
+                        <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#64748b' }}>Skills:</span>
+                        {person.skills.map(s => {
+                          const isMatch = s === project.category || s === 'All';
+                          return (
+                            <span key={s} style={{ 
+                              fontSize: '0.6rem', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px',
+                              backgroundColor: isMatch ? '#ECFDF5' : '#F8FAFC',
+                              color: isMatch ? '#059669' : '#94a3b8',
+                              border: `1px solid ${isMatch ? '#10B981' : '#E2E8F0'}`,
+                              fontWeight: isMatch ? 800 : 500
+                            }}>
+                              {s}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   <button onClick={() => handleAssignAttempt(person)} style={{ border: 'none', background: '#4C8CE4', color: '#fff', padding: '3px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer' }}>Assign</button>

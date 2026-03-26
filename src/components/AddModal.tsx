@@ -127,11 +127,11 @@ const AddModal: React.FC<AddModalProps> = ({ isOpen, type, initialData, onClose,
   const countries = ["GLOBAL", ...availableCountries];
 
   const powerProducts = [
-    "DPM G1 UL series", "DPM G2 UL series", "DPH G2 UL series", "DPH LV UL series", 
-    "STS UL series", "PDU UL series", "DPM G2 CE series", "DPH G2 CE series", 
-    "DPS G2 CE series", "STS CE series", "DPH G3 CE series", "RP240"
+    "DPM G1 UL", "DPM G2 UL", "DPH G2 UL", "DPH LV UL", 
+    "STS UL", "PDU UL", "DPM G2 CE", "DPH G2 CE", 
+    "DPS G2 CE", "STS CE", "DPH G3 CE", "RP240"
   ];
-  const coolingProducts = ["GoCool series", "AALC", "IRHX"];
+  const coolingProducts = ["GoCool", "AALC", "IRHX"];
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
